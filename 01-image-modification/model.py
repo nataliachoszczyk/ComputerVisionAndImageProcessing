@@ -29,7 +29,10 @@ class UNet(nn.Module):
         self.up1 = nn.ConvTranspose2d(2 * c, c, 2, stride=2)
         self.dec1 = conv_block(2 * c, c)
 
+        # zero init: output starts as the input (bicubic)
         self.out = nn.Conv2d(c, 3, 1)
+        nn.init.zeros_(self.out.weight)
+        nn.init.zeros_(self.out.bias)
 
     def forward(self, x):
         if self.scale > 1:
