@@ -23,13 +23,15 @@ def train(model, train_set, val_set, checkpoint, epochs=30, lr=2e-4, batch_size=
     device = device or ("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
 
-    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=2,
+    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=4,
                               persistent_workers=True, pin_memory=device == "cuda")
-    val_loader = DataLoader(val_set, batch_size=batch_size, num_workers=2, persistent_workers=True)
+    val_loader = DataLoader(val_set, batch_size=batch_size, num_workers=4, persistent_workers=True)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
     loss_fn = nn.L1Loss()
+    use_amp = device == "cuda"
+    scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
 
     history = []
     best_psnr = 0.0
@@ -42,10 +44,12 @@ def train(model, train_set, val_set, checkpoint, epochs=30, lr=2e-4, batch_size=
         total_loss = 0.0
         for inputs, targets in tqdm(train_loader, desc=f"epoch {epoch}", leave=False):
             inputs, targets = inputs.to(device), targets.to(device)
-            loss = loss_fn(model(inputs), targets)
+            with torch.autocast(device_type=device, dtype=torch.float16, enabled=use_amp):
+                loss = loss_fn(model(inputs), targets)
             optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
             total_loss += loss.item()
         scheduler.step()
 
