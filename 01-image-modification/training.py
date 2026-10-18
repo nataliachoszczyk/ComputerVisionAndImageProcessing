@@ -24,8 +24,8 @@ def train(model, train_set, val_set, checkpoint, epochs=30, lr=2e-4, batch_size=
     model.to(device)
 
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=2,
-                              pin_memory=device == "cuda")
-    val_loader = DataLoader(val_set, batch_size=batch_size, num_workers=2)
+                              persistent_workers=True, pin_memory=device == "cuda")
+    val_loader = DataLoader(val_set, batch_size=batch_size, num_workers=2, persistent_workers=True)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
