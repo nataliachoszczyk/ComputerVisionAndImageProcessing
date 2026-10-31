@@ -4,7 +4,7 @@ University projects for the SIGK (Sztuczna inteligencja w grafice komputerowej) 
 
 | # | Folder | Topic |
 |---|--------|-------|
-| 1 | `01-image-modification` | Image modification (super-resolution) |
+| 1 | `01-image-modification` | Image modification (super-resolution, denoising) |
 | 2 | `02-hdr` | Tools / HDR |
 | 3 | `03-neural-rendering` | Neural rendering |
 | 4 | `04-geometry-processing` | Geometry processing |
