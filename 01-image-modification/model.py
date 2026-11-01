@@ -13,9 +13,17 @@ def conv_block(in_ch, out_ch):
 
 
 class UNet(nn.Module):
-    def __init__(self, scale=1, c=32):
+    def __init__(self, scale=1, c=32, upsample="bicubic"):
         super().__init__()
         self.scale = scale
+        self.upsample = upsample
+
+        # learned upsampling instead of bicubic: conv + pixel shuffle
+        if scale > 1 and upsample == "learned":
+            self.up_in = nn.Sequential(
+                nn.Conv2d(3, 3 * scale ** 2, 3, padding=1),
+                nn.PixelShuffle(scale),
+            )
 
         self.enc1 = conv_block(3, c)
         self.enc2 = conv_block(c, 2 * c)
@@ -29,14 +37,17 @@ class UNet(nn.Module):
         self.up1 = nn.ConvTranspose2d(2 * c, c, 2, stride=2)
         self.dec1 = conv_block(2 * c, c)
 
-        # zero init: output starts as the input (bicubic)
+        # zero init: output starts as the upsampled input
         self.out = nn.Conv2d(c, 3, 1)
         nn.init.zeros_(self.out.weight)
         nn.init.zeros_(self.out.bias)
 
     def forward(self, x):
         if self.scale > 1:
-            x = F.interpolate(x, scale_factor=self.scale, mode="bicubic", align_corners=False)
+            if self.upsample == "learned":
+                x = self.up_in(x)
+            else:
+                x = F.interpolate(x, scale_factor=self.scale, mode="bicubic", align_corners=False)
 
         # encoder: 256 -> 128 -> 64 -> 32
         e1 = self.enc1(x)
