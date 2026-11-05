@@ -7,7 +7,7 @@
 | 2026-11-05 | data-v1 | [sigk-p2-data-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-data-v1) | Stop after 4 s: the Kaggle image has no rawpy. | failed |
 | 2026-11-05 | data-v2 | [sigk-p2-data-v2](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-data-v2) | Same as data-v1, and install rawpy. Result: 100 NEF files, 100 ground truth images, 100 input images, `raise100-set.zip` (1585 MB, CPU, 17 min). | complete |
 | 2026-11-05 | eda-v1 | [sigk-p2-eda-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-eda-v1) | Compute the statistics and the figures of the 100 image pairs (CPU). Result: median linear gain is 7.5 (train), 21.4 (val), 8.5 (test). | complete |
-| 2026-11-05 | baseline-v1 | [sigk-p2-baseline-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-baseline-v1) | Codenames `eda-v2`, `baseline-v1`. Repeat the analysis with the final split. Score histogram equalization on the test set (CPU). | running |
+| 2026-11-05 | baseline-v1 | [sigk-p2-baseline-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-baseline-v1) | Codenames `eda-v2`, `baseline-v1`. Repeat the analysis with the final split. Score histogram equalization on the test set (CPU). Result: PSNR 11.32, SSIM 0.152, LPIPS 1.077. | complete |
 
 ## Log
 
@@ -32,3 +32,4 @@
 - Add `LowLightDataset` to `data.py`.
 - Add `metrics.py` with PSNR, SSIM, LPIPS and the histogram equalization baseline.
 - Add the job `baseline-v1`.
+- Add the results of `eda-v2` and `baseline-v1` to `experiments.ipynb`.
