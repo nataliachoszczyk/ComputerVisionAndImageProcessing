@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 import rawpy
 import requests
+import torch
+from torch.utils.data import Dataset
 
 SPLIT_COLORS = {"train": "#2a78d6", "val": "#eb6834", "test": "#1baf7a"}
 
@@ -103,8 +105,10 @@ def generate_dataset(nef_dir, output_gt_dir, output_dark_dir, ev_shift=-3.0):
 
 
 def split_name(index):
-    # The photos of each split come from different sessions, so similar photos stay in one split.
-    return "train" if index < 70 else "val" if index < 80 else "test"
+    # Val is one complete session, so similar photos stay in one split. Its gain is near the test gain.
+    if index >= 80:
+        return "test"
+    return "val" if 42 <= index <= 52 else "train"
 
 
 def read_file_names(csv_path, limit=100):
@@ -112,8 +116,46 @@ def read_file_names(csv_path, limit=100):
         return [row["File"] for _, row in zip(range(limit), csv.DictReader(file))]
 
 
+def split_files(csv_path, split):
+    return [name for index, name in enumerate(read_file_names(csv_path)) if split_name(index) == split]
+
+
 def read_pair(set_dir, name):
     return imageio.imread(f"{set_dir}/gt/{name}_gt.png"), imageio.imread(f"{set_dir}/input/{name}_input.png")
+
+
+def to_tensor(img):
+    return torch.from_numpy(img).permute(2, 0, 1).float() / 255.0
+
+
+class LowLightDataset(Dataset):
+    """Give (input, ground truth) pairs: random patches if patch_size is set, otherwise full images."""
+
+    def __init__(self, set_dir, names, patch_size=None, patches_per_image=1):
+        self.names = names
+        self.patch_size = patch_size
+        self.patches_per_image = patches_per_image
+        # A full PNG decode for each patch is slow, so keep the images in memory.
+        self.pairs = [read_pair(set_dir, name) for name in names]
+
+    def __len__(self):
+        return len(self.pairs) * self.patches_per_image
+
+    def __getitem__(self, idx):
+        gt, dark = self.pairs[idx % len(self.pairs)]
+        if self.patch_size is None:
+            return to_tensor(dark), to_tensor(gt)
+
+        y = int(torch.randint(gt.shape[0] - self.patch_size + 1, ()))
+        x = int(torch.randint(gt.shape[1] - self.patch_size + 1, ()))
+        dark = to_tensor(dark[y:y + self.patch_size, x:x + self.patch_size])
+        gt = to_tensor(gt[y:y + self.patch_size, x:x + self.patch_size])
+
+        turns = int(torch.randint(4, ()))
+        dark, gt = torch.rot90(dark, turns, dims=(1, 2)), torch.rot90(gt, turns, dims=(1, 2))
+        if torch.rand(()) < 0.5:
+            dark, gt = dark.flip(2), gt.flip(2)
+        return dark, gt
 
 
 def image_stats(gt, dark, gamma=2.2):
