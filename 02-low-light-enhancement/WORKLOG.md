@@ -6,7 +6,7 @@
 |---|---|---|---|---|
 | 2026-11-05 | data-v1 | [sigk-p2-data-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-data-v1) | Stop after 4 s: the Kaggle image has no rawpy. | failed |
 | 2026-11-05 | data-v2 | [sigk-p2-data-v2](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-data-v2) | Same as data-v1, and install rawpy. Result: 100 NEF files, 100 ground truth images, 100 input images, `raise100-set.zip` (1585 MB, CPU, 17 min). | complete |
-| 2026-11-05 | eda-v1 | [sigk-p2-eda-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-eda-v1) | Compute the statistics and the figures of the 100 image pairs (CPU). | running |
+| 2026-11-05 | eda-v1 | [sigk-p2-eda-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-eda-v1) | Compute the statistics and the figures of the 100 image pairs (CPU). Result: median linear gain is 7.5 (train), 21.4 (val), 8.5 (test). | complete |
 
 ## Log
 
@@ -26,3 +26,5 @@
 - Add the job `data-v2`, because `data-v1` failed without rawpy.
 - Make the private dataset `sigk-p2-raise100` from the output of `data-v2`, and share it with the team.
 - Add the split, the statistics and the figures to `data.py`. Add the job `eda-v1`.
+- Add the results of `eda-v1` and `experiments.ipynb`.
+- Open decision: the val split has a high median gain (21.4). A possible val split is the images 43-53 (median gain 10.7).
