@@ -8,6 +8,7 @@
 | 2026-11-05 | data-v2 | [sigk-p2-data-v2](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-data-v2) | Same as data-v1, and install rawpy. Result: 100 NEF files, 100 ground truth images, 100 input images, `raise100-set.zip` (1585 MB, CPU, 17 min). | complete |
 | 2026-11-05 | eda-v1 | [sigk-p2-eda-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-eda-v1) | Compute the statistics and the figures of the 100 image pairs (CPU). Result: median linear gain is 7.5 (train), 21.4 (val), 8.5 (test). | complete |
 | 2026-11-05 | baseline-v1 | [sigk-p2-baseline-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-baseline-v1) | Codenames `eda-v2`, `baseline-v1`. Repeat the analysis with the final split. Score histogram equalization on the test set (CPU). Result: PSNR 11.32, SSIM 0.152, LPIPS 1.077. | complete |
+| 2026-11-07 | train-smoke | [sigk-p2-train-smoke](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-train-smoke) | Codenames `smoke-a`, `smoke-b`, `smoke-c`. Test all steps of the three models on 3 images of each split, and measure the speed (GPU). | running |
 
 ## Log
 
@@ -33,3 +34,11 @@
 - Add `metrics.py` with PSNR, SSIM, LPIPS and the histogram equalization baseline.
 - Add the job `baseline-v1`.
 - Add the results of `eda-v2` and `baseline-v1` to `experiments.ipynb`.
+
+### 2026-11-07
+
+- Add `model.py` with U-Net, U-Net with a global branch and NAFNet.
+- Add `training.py` with the training, the prediction on tiles and the experiment function.
+- Add a thumbnail of the full image to the patches of `LowLightDataset`.
+- Do a local test of all steps on synthetic images (CPU).
+- Add the job `train-smoke`.

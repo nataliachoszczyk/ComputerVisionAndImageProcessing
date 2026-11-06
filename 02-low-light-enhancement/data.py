@@ -9,6 +9,7 @@ import pandas as pd
 import rawpy
 import requests
 import torch
+import torch.nn.functional as F
 from torch.utils.data import Dataset
 
 SPLIT_COLORS = {"train": "#2a78d6", "val": "#eb6834", "test": "#1baf7a"}
@@ -128,8 +129,12 @@ def to_tensor(img):
     return torch.from_numpy(img).permute(2, 0, 1).float() / 255.0
 
 
+def make_thumbnail(inputs, size=128):
+    return F.interpolate(inputs, size=(size, size), mode="area")
+
+
 class LowLightDataset(Dataset):
-    """Give (input, ground truth) pairs: random patches if patch_size is set, otherwise full images."""
+    """Give (input, ground truth, thumbnail) of a random patch if patch_size is set, otherwise (input, ground truth)."""
 
     def __init__(self, set_dir, names, patch_size=None, patches_per_image=1):
         self.names = names
@@ -137,12 +142,15 @@ class LowLightDataset(Dataset):
         self.patches_per_image = patches_per_image
         # A full PNG decode for each patch is slow, so keep the images in memory.
         self.pairs = [read_pair(set_dir, name) for name in names]
+        # A patch does not show the full scene, so each patch gets a thumbnail of its image.
+        self.thumbs = [make_thumbnail(to_tensor(dark)[None])[0] for _, dark in self.pairs] if patch_size else None
 
     def __len__(self):
         return len(self.pairs) * self.patches_per_image
 
     def __getitem__(self, idx):
-        gt, dark = self.pairs[idx % len(self.pairs)]
+        image = idx % len(self.pairs)
+        gt, dark = self.pairs[image]
         if self.patch_size is None:
             return to_tensor(dark), to_tensor(gt)
 
@@ -152,10 +160,11 @@ class LowLightDataset(Dataset):
         gt = to_tensor(gt[y:y + self.patch_size, x:x + self.patch_size])
 
         turns = int(torch.randint(4, ()))
-        dark, gt = torch.rot90(dark, turns, dims=(1, 2)), torch.rot90(gt, turns, dims=(1, 2))
+        thumb = self.thumbs[image]
+        dark, gt, thumb = (torch.rot90(item, turns, dims=(1, 2)) for item in (dark, gt, thumb))
         if torch.rand(()) < 0.5:
-            dark, gt = dark.flip(2), gt.flip(2)
-        return dark, gt
+            dark, gt, thumb = dark.flip(2), gt.flip(2), thumb.flip(2)
+        return dark, gt, thumb
 
 
 def image_stats(gt, dark, gamma=2.2):
