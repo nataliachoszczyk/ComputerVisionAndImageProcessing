@@ -50,3 +50,4 @@
 - Add the results of `train-v1c`.
 - Add the global branch to NAFNet (`nafnet-global`).
 - Add the job `train-v2ab`. One session for the two experiments uses less GPU time than two sessions.
+- Translate the text of `experiments.ipynb` to English.
