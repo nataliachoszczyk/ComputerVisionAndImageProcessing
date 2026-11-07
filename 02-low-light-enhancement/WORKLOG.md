@@ -11,6 +11,7 @@
 | 2026-11-07 | train-smoke | [sigk-p2-train-smoke](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-train-smoke) | Codenames `smoke-a`, `smoke-b`, `smoke-c`. Test all steps of the three models on 3 images of each split, and measure the speed (GPU). Result: all steps work in 4 min. U-Net: 100 steps in 15 s. NAFNet: 100 steps in 67 s. | complete |
 | 2026-11-07 | train-v1ab | [sigk-p2-train-v1ab](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-train-v1ab) | Codenames `train-v1a` (U-Net), `train-v1b` (U-Net with a global branch). 15000 steps, patch size 256, batch size 16, L1 loss (GPU). Result: `train-v1a` PSNR 19.78, SSIM 0.398, LPIPS 0.520. `train-v1b` PSNR 24.07, SSIM 0.587, LPIPS 0.346. | complete |
 | 2026-11-07 | train-v1c | [sigk-p2-train-v1c](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-train-v1c) | Codename `train-v1c` (NAFNet). Same settings as `train-v1ab` (GPU). Result: PSNR 20.95, SSIM 0.631, LPIPS 0.384 (2.6 h). | complete |
+| 2026-11-07 | train-v2ab | [sigk-p2-train-v2ab](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-train-v2ab) | Codenames `train-v2a` (U-Net with a global branch, 40000 steps), `train-v2b` (NAFNet with a global branch, 15000 steps). Other settings as `train-v1ab` (GPU). | running |
 
 ## Log
 
@@ -47,3 +48,5 @@
 - Add the jobs `train-v1ab` and `train-v1c`. The number of steps comes from the speed of NAFNet in `train-smoke`.
 - Add the results of `train-v1a` and `train-v1b`.
 - Add the results of `train-v1c`.
+- Add the global branch to NAFNet (`nafnet-global`).
+- Add the job `train-v2ab`. One session for the two experiments uses less GPU time than two sessions.

@@ -131,7 +131,7 @@ class NAFBlock(nn.Module):
 
 
 class NAFNet(nn.Module):
-    def __init__(self, c=32, enc_blocks=(1, 1, 2, 4), middle_blocks=4, dec_blocks=(1, 1, 1, 1)):
+    def __init__(self, c=32, enc_blocks=(1, 1, 2, 4), middle_blocks=4, dec_blocks=(1, 1, 1, 1), global_branch=False):
         super().__init__()
         self.intro = nn.Conv2d(3, c, 3, padding=1)
         self.encoders = nn.ModuleList()
@@ -145,25 +145,34 @@ class NAFNet(nn.Module):
             self.downs.append(nn.Conv2d(channels, 2 * channels, 2, stride=2))
             channels *= 2
         self.middle = nn.Sequential(*[NAFBlock(channels) for _ in range(middle_blocks)])
+        film_channels = [channels]
         for count in dec_blocks:
             self.ups.append(nn.Sequential(nn.Conv2d(channels, 2 * channels, 1), nn.PixelShuffle(2)))
             channels //= 2
             self.decoders.append(nn.Sequential(*[NAFBlock(channels) for _ in range(count)]))
+            film_channels.append(channels)
 
         self.out = nn.Conv2d(c, 3, 3, padding=1)
         nn.init.zeros_(self.out.weight)
         nn.init.zeros_(self.out.bias)
 
+        # The same conditioning as in UNet: after the middle blocks and after each decoder.
+        self.global_branch = GlobalBranch() if global_branch else None
+        self.films = nn.ModuleList([FiLM(ch) for ch in film_channels]) if global_branch else None
+
     def forward(self, x, thumb=None):
+        vector = self.global_branch(thumb) if self.global_branch is not None else None
+        film = (lambda i, y: self.films[i](y, vector)) if vector is not None else (lambda i, y: y)
+
         y = self.intro(x)
         skips = []
         for encoder, down in zip(self.encoders, self.downs):
             y = encoder(y)
             skips.append(y)
             y = down(y)
-        y = self.middle(y)
-        for decoder, up, skip in zip(self.decoders, self.ups, reversed(skips)):
-            y = decoder(up(y) + skip)
+        y = film(0, self.middle(y))
+        for i, (decoder, up, skip) in enumerate(zip(self.decoders, self.ups, reversed(skips)), start=1):
+            y = film(i, decoder(up(y) + skip))
         return x + self.out(y)
 
 
@@ -171,4 +180,5 @@ MODELS = {
     "unet": UNet,
     "unet-global": lambda: UNet(global_branch=True),
     "nafnet": NAFNet,
+    "nafnet-global": lambda: NAFNet(global_branch=True),
 }
