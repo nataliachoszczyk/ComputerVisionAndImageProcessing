@@ -13,6 +13,9 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset
 
 SPLIT_COLORS = {"train": "#2a78d6", "val": "#eb6834", "test": "#1baf7a"}
+# One fixed color for each method in all figures. The baseline is a reference, so it is gray.
+METHOD_COLORS = {"baseline": "#8a8984", "train-v2a": "#2a78d6", "train-v2b": "#eb6834", "train-v1b": "#1baf7a",
+                 "train-v1c": "#eda100", "train-v1a": "#e87ba4"}
 
 
 def download_raise_nef(csv_path, output_dir, limit=None):
