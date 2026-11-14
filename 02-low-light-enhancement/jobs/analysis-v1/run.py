@@ -23,7 +23,22 @@ import torch
 from analysis import run_analysis
 from data import split_files
 
-assert torch.cuda.is_available(), "no GPU: check the machine of the job"
+
+
+def pick_device():
+    # The PyTorch of the Kaggle image may not support the P100. Then use the CPU: slow, but the job gives results.
+    if torch.cuda.is_available():
+        try:
+            (torch.ones(8, device="cuda") * 2).sum().item()
+            print("device", torch.cuda.get_device_name(0))
+            return "cuda:0"
+        except Exception as error:
+            print("GPU not usable:", error)
+    print("device cpu")
+    return "cpu"
+
+
+device = pick_device()
 weights = {}
 for codename in NETWORKS:
     # Accept the output of a kernel (<codename>/best.pt) and a dataset (<codename>.pt).
@@ -34,7 +49,7 @@ print("weights", weights)
 
 set_dir = next(Path("/kaggle/input").rglob("gt")).parent
 names = split_files(f"{CLONE}/{PROJECT}/RAISE_258.csv", "test")
-summary = run_analysis(set_dir, names, weights, f"{OUT}/analysis-v1", "cuda:0", pred_dir=f"{OUT}/preds")
+summary = run_analysis(set_dir, names, weights, f"{OUT}/analysis-v1", device, pred_dir=f"{OUT}/preds")
 print(summary.T.to_string())
 
 # The PSNR must be the same as in the training job, otherwise the weights are wrong.
