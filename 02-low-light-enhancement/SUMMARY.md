@@ -22,11 +22,23 @@ Ważna konsekwencja: najjaśniejszy możliwy piksel wejścia to (1/8)^(1/2.2) �
 
 ### 1.2. Obraz wzorcowy i automatyczna jasność
 
-Obraz wzorcowy (ground truth) powstaje z tego samego pliku RAW przez `postprocess` z ustawieniami domyślnymi. To oznacza, że w odróżnieniu od wejścia ma on **włączoną automatyczną jasność** i standardową krzywą tonalną BT.709. Zależność między wejściem a wzorcem nie jest więc stałym mnożnikiem 8. Każde zdjęcie jest rozjaśniane inaczej, zależnie od sceny.
+Obraz wzorcowy (ground truth) powstaje z tego samego pliku RAW przez `postprocess` z ustawieniami domyślnymi. To oznacza, że w odróżnieniu od wejścia ma on **włączoną automatyczną jasność** i standardową krzywą tonalną BT.709. Gdyby wzorzec powstał tą samą drogą co wejście, tylko bez obniżenia ekspozycji i bez szumu, w przestrzeni liniowej zachodziłoby dokładnie: wzorzec = 8 × wejście. Automatyczna jasność to zmienia.
 
-Zmierzyliśmy to jako stosunek średniej jasności w przestrzeni liniowej wzorca do wejścia (*gain*, job `eda-v2`). Bez automatycznej jasności wynosiłby on 8. W rzeczywistości mediana to 7.6 (trening), 10.7 (walidacja) i 8.5 (test), a cały zakres to 4.6–41. Wartości poniżej 8 mają głównie ciemne sceny z dużą liczbą czarnych pikseli na wejściu. Tam przycięcie ujemnego szumu do zera podnosi średnią wejścia, a krzywa BT.709 wzorca różni się od czystej potęgi 2.2.
+Automatyczna jasność w LibRaw działa tak:
 
-Dla sieci oznacza to, że oprócz odszumienia **musi ona oszacować, jak bardzo rozjaśnić całą scenę**. Tej informacji nie widać w małym fragmencie obrazu. Ta obserwacja zdecydowała o architekturze (punkt 3).
+1. Program liczy histogram zdjęcia.
+2. Szuka poziomu jasności, powyżej którego leży 1% najjaśniejszych pikseli.
+3. Mnoży cały obraz tak, żeby ten poziom stał się bielą.
+
+W efekcie około 1% pikseli wzorca jest prześwietlonych celowo. Potwierdzają to dane: mediana udziału prześwietlonych pikseli we wzorcu to 0.7–1.1% w każdym zbiorze. Dodatkowe rozjaśnienie zależy więc od treści zdjęcia. Jeśli w scenie jest lampa, okno albo witraż, najjaśniejszy 1% pikseli jest już prawie biały i rozjaśnienie jest niewielkie. Jeśli scena nie ma jasnych punktów, na przykład bilet na ścianie (`rc589a8d6t`), nawet najjaśniejsze piksele są szare. Program rozciąga je do bieli i rozjaśnia całe zdjęcie kilka razy mocniej. Zależność między wejściem a wzorcem nie jest więc stałym mnożnikiem 8. Każde zdjęcie jest rozjaśniane inaczej, zależnie od sceny.
+
+Zmierzyliśmy to jako stosunek średniej jasności w przestrzeni liniowej wzorca do wejścia (*gain*, job `eda-v2`). Bez automatycznej jasności wynosiłby on 8. W rzeczywistości mediana to 7.6 (trening), 10.7 (walidacja) i 8.5 (test), a cały zakres to 4.6–41. Bilet na ścianie ma *gain* 27. Automatyczna jasność tylko rozjaśnia, więc wartości poniżej 8 wynikają z samego pomiaru. Mają je głównie ciemne sceny z dużą liczbą czarnych pikseli na wejściu, na przykład `r2f910937t` (44% zer na wejściu, *gain* 4.6). Są trzy przyczyny:
+
+- Przycięcie ujemnego szumu do zera podnosi średnią wejścia w ciemnych miejscach.
+- Krzywa BT.709 wzorca różni się w ciemnych tonach od czystej potęgi 2.2, której używamy przy pomiarze.
+- Prześwietlone piksele wzorca są przycięte do 255, co zaniża jego średnią.
+
+Dla sieci oznacza to, że oprócz odszumienia **musi ona oszacować, jak bardzo rozjaśnić całą scenę**. Tej informacji nie widać w małym fragmencie obrazu. Patrząc na fragment ciemnej ściany, sieć nie wie, czy gdzieś dalej na zdjęciu jest lampa (wtedy *gain* jest bliski 8), czy nie ma żadnego jasnego punktu (wtedy *gain* wynosi 20–40). Ta obserwacja zdecydowała o architekturze (punkt 3).
 
 ![Histogramy wartości pikseli wzorca i wejścia](results/eda-v2/histograms.png)
 
@@ -62,10 +74,14 @@ Wszystkie metryki liczymy na pełnych zdjęciach testowych (wartości w [0, 1]) 
 
 ### 3.1. Architektury
 
-Wszystkie sieci uczą się **poprawki dodawanej do wejścia**: wynik = wejście + korekta. Ostatnia warstwa jest inicjalizowana zerami, więc na początku treningu sieć zwraca po prostu wejście. Sprawdziliśmy dwie architektury:
+Wszystkie sieci uczą się **poprawki dodawanej do wejścia**: wynik = wejście + korekta. Ostatnia warstwa jest inicjalizowana zerami, więc na początku treningu sieć zwraca po prostu wejście.
 
-- **U-Net** (szerokość c = 32, trzy poziomy zmniejszania, 1.9 mln parametrów), tę samą co w projekcie 1.
-- **NAFNet** (c = 32, bloki enkodera 1-1-2-4, 4 bloki środkowe, 11.6 mln parametrów). To nowoczesna sieć do przywracania jakości obrazów. Zamiast zwykłych aktywacji używa bramek (*SimpleGate*), ma uproszczoną uwagę kanałową i normalizację warstw.
+Obie sprawdzone sieci mają **kształt U**. Enkoder stopniowo zmniejsza obraz, żeby uchwycić jego ogólną treść. Dekoder odtwarza pełną rozdzielczość, a połączenia skip przekazują szczegóły między odpowiadającymi sobie poziomami. Sieci różnią się budową bloków:
+
+- **Klasyczny U-Net** (szerokość c = 32, trzy poziomy zmniejszania, 1.9 mln parametrów), ten sam co w projekcie 1. To pomniejszona wersja oryginalnej sieci Ronnebergera i in. (2015): oryginał ma c = 64 i cztery poziomy. Każdy poziom ma dwie zwykłe konwolucje 3×3 z ReLU. Obraz jest zmniejszany przez max pooling, a powiększany konwolucją transponowaną. Połączenia skip łączą cechy przez konkatenację.
+- **NAFNet** (Chen i in., 2022; c = 32, cztery poziomy zmniejszania, 11.6 mln parametrów). To nowoczesna sieć do przywracania jakości obrazów. Ma ten sam kształt U, ale bardziej rozbudowane bloki: normalizację warstw, konwolucję *depthwise*, bramkę (*SimpleGate*) zamiast funkcji aktywacji i uproszczoną uwagę kanałową. Jest też głębsza: ma 1, 1, 2 i 4 bloki na kolejnych poziomach enkodera oraz 4 bloki w środku. Obraz jest zmniejszany konwolucją z krokiem 2, a powiększany przez *PixelShuffle*. Połączenia skip dodają cechy zamiast je łączyć.
+
+Porównanie tych dwóch sieci pokazuje więc wpływ budowy bloków i rozmiaru sieci przy tym samym ogólnym kształcie.
 
 ### 3.2. Gałąź globalna
 
@@ -116,7 +132,7 @@ Wnioski z eksperymentów:
 
 ![PSNR każdego zdjęcia testowego](results/summary/per_image_psnr.png)
 
-Sieć jest lepsza od metody bazowej na **wszystkich 20** zdjęciach testowych, o 5.6–22.8 dB. Wynik metody bazowej silnie zależy od *gain* (korelacja Spearmana 0.57). Wynik sieci prawie wcale (−0.08 dla `v2a`), co pokazuje, że gałąź globalna poprawnie ocenia jasność sceny.
+Sieć jest lepsza od metody bazowej na **wszystkich 20** zdjęciach testowych, o 5.6–22.8 dB. PSNR metody bazowej silnie zależy od *gain* zdjęcia (korelacja Spearmana 0.57). PSNR sieci prawie wcale od niego nie zależy (−0.08 dla `v2a`): sieć radzi sobie podobnie dobrze niezależnie od tego, jak mocno trzeba rozjaśnić zdjęcie. Sama ocena jasności sceny nie jest jednak idealna, co pokazuje sekcja 5.2.
 
 ![Wyniki train-v2a na zdjęciach testowych](results/train-v2a/comparison.png)
 
@@ -154,7 +170,7 @@ Wartości to średnie z 20 zdjęć testowych.
 
 | Miara | baseline | `train-v2a` | `train-v2b` |
 |---|---:|---:|---:|
-| PSNR [dB] | 11.32 | **26.00** | 24.71 |
+| PSNR [dB] | 11.31 | **26.00** | 24.71 |
 | PSNR po dopasowaniu wzmocnienia [dB] | 16.80 | **28.84** | 28.26 |
 | ekspozycja (wynik / wzorzec, idealnie 1) | 3.20 | **0.97** | 0.93 |
 | zafarb [°] | 12.9 | **0.4** | 0.6 |
@@ -180,12 +196,12 @@ Wartości to średnie z 20 zdjęć testowych.
 
 Sieć ściąga więc swoją ocenę w stronę typowej jasności. Nie wynika to z braku takich zdjęć w treningu: wzmocnienie ≥ 10 ma 27 z 69 zdjęć treningowych. Prawdopodobna przyczyna to sposób działania automatycznej jasności. Dobiera ona wzmocnienie tak, żeby przyciąć około 1% najjaśniejszych pikseli sceny. Na miniaturze 128×128, która uśrednia obszary około 13×19 pikseli, małe jasne elementy (lampy, okna) prawie znikają, więc gałąź globalna widzi tylko przybliżenie tej informacji. Ten błąd tłumaczy najgorsze wyniki. Po samym dopasowaniu wzmocnienia PSNR rośnie dla `r19d72b0ct` z 21.6 do 29.9 dB, dla `r5211d294t` z 20.1 do 27.9 dB, a dla `re3555814t` z 25.5 do 32.6 dB. W wycinku gładkiej ściany z `r5211d294t` błąd jest równomierny na całej powierzchni, czyli jest to czysty błąd ekspozycji, a nie szczegółów. Dla metody bazowej problem jest dużo większy: ekspozycja waha się od 0.65 do 12, bo wyrównanie histogramu rozjaśnia ciemne sceny tak samo mocno jak jasne.
 
-**Prześwietlenia.** Sieć odtwarza prześwietlenia zachowawczo. Tylko 47% prześwietlonych pikseli wzorca jest prześwietlonych także w wyniku `train-v2a`, a jasne partie i prześwietlenia są średnio o około 6 poziomów (w skali 0–255) za ciemne. W zamian sieć prawie nigdy nie prześwietla niepotrzebnie (0.1% pikseli, wobec 3.7% dla metody bazowej). Odtworzenie prześwietleń zależy od ekspozycji: na zdjęciach z ekspozycją poniżej 0.9 spada zwykle do kilku procent, a na zdjęciach z ekspozycją ≥ 1 wynosi zwykle ponad 80%. Wejście nie mówi wprost, które piksele we wzorcu przekroczyły zakres, bo po obniżeniu ekspozycji o 3 EV jego wartości sięgają najwyżej około 99 z 255. Sieć musi to zgadywać z oceny jasności sceny. `train-v2b` jest w jasnych partiach jeszcze ciemniejszy (−11 poziomów) i odtwarza tylko 40% prześwietleń.
+**Prześwietlenia.** Sieć odtwarza prześwietlenia zachowawczo. Tylko 47% prześwietlonych pikseli wzorca jest prześwietlonych także w wyniku `train-v2a`, a jasne partie i prześwietlenia są średnio o około 6 poziomów (w skali 0–255) za ciemne. W zamian sieć prawie nigdy nie prześwietla niepotrzebnie (0.1% pikseli, wobec 3.7% dla metody bazowej). Odtworzenie prześwietleń zależy od ekspozycji: na połowie zdjęć z ekspozycją poniżej 0.9 spada poniżej 10%, a na zdjęciach z ekspozycją ≥ 1 wynosi zwykle ponad 80%. Wejście nie mówi wprost, które piksele we wzorcu przekroczyły zakres, bo po obniżeniu ekspozycji o 3 EV jego wartości sięgają najwyżej około 99 z 255. Sieć musi to zgadywać z oceny jasności sceny. `train-v2b` jest w jasnych partiach jeszcze ciemniejszy (−11 poziomów) i odtwarza tylko 40% prześwietleń.
 
 **Cienie i szczegóły.** W cieniach wynik sieci jest średnio o 4 poziomy za jasny. Sieć nie odtwarza pełnej czerni, co jest typowym śladem odszumiania przy bardzo słabym sygnale. Wycinki pokazują też, że najdrobniejsze struktury, na przykład wzór gilosza na bilecie (`rc589a8d6t`) albo cienkie linie witraża, zostają wygładzone. Ich kontrast w ciemnym wejściu był mniejszy niż szum.
 
 ## 6. Podsumowanie
 
-Sieć U-Net z gałęzią globalną (`train-v2a`) poprawia zdjęcie z symulowanego słabego oświetlenia z PSNR 26.0 dB, SSIM 0.716 i LPIPS 0.271, wobec 11.3 dB, 0.152 i 1.077 dla wyrównania histogramu. Kluczowe okazało się zrozumienie danych. Obraz wzorcowy ma automatycznie dobraną jasność, więc zadanie to nie tylko odszumianie i stałe rozjaśnienie ×8, ale też ocena jasności całej sceny. Mała gałąź, która widzi miniaturę całego zdjęcia, dała więcej niż zmiana architektury na pięciokrotnie większy NAFNet.
+Sieć U-Net z gałęzią globalną (`train-v2a`) poprawia zdjęcie z symulowanego słabego oświetlenia z PSNR 26.0 dB, SSIM 0.716 i LPIPS 0.271, wobec 11.3 dB, 0.152 i 1.077 dla wyrównania histogramu. Kluczowe okazało się zrozumienie danych. Obraz wzorcowy ma automatycznie dobraną jasność, więc zadanie to nie tylko odszumianie i stałe rozjaśnienie ×8, ale też ocena jasności całej sceny. Mała gałąź, która widzi miniaturę całego zdjęcia, dała więcej niż zamiana bloków klasycznego U-Neta na bloki NAFNetu, choć taka sieć ma 5.6 razy więcej parametrów.
 
 Analiza przypadków szczególnych pokazuje, że sieć dobrze odtwarza kolory (zafarb poniżej 1°), choć lekko je wygasza. Jej główną słabością pozostaje ocena jasności sceny: zdjęcia z dużym wzmocnieniem wychodzą za ciemne, a ciemne sceny za jasne. Z tego samego powodu sieć odtwarza tylko około połowy prześwietleń, za to prawie nigdy nie prześwietla niepotrzebnie. Naturalnym następnym krokiem byłoby więc lepsze przewidywanie jasności sceny, na przykład przez podanie gałęzi globalnej histogramu albo najjaśniejszych wartości całego wejścia, które miniatura uśrednia. Większa sieć do samego odszumiania niewiele by tu zmieniła.

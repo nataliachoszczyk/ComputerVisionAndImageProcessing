@@ -72,3 +72,4 @@
 - Add the results of `analysis-v1` to `results/analysis-v1/`.
 - Add the section about the colors and the clipped highlights to `experiments.ipynb`.
 - Add section 5.2 and the conclusions about the colors and the clipped highlights to `SUMMARY.md`.
+- Correct and extend `SUMMARY.md`: the rule of the auto brightness (1.2), the U shape of both networks (3.1), a contradiction about the exposure (4), the rounding of the baseline PSNR and the share of the kept clipped pixels (5.2).
