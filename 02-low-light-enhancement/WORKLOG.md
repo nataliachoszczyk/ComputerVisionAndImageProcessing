@@ -67,3 +67,5 @@
 
 - Remove a wrong attribution line from the messages of the two commits of 2026-11-14.
 - Correct the search for the weights in `jobs/analysis-v1/run.py`: compare the complete folder name or file name.
+- Save the learning curves and the PSNR of each test image from `experiments.ipynb` to `results/summary/`.
+- Add a draft of `SUMMARY.md` (in Polish). Section 5.2 waits for the results of `analysis-v1`.
