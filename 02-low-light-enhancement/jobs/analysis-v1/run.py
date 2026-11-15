@@ -42,7 +42,8 @@ device = pick_device()
 weights = {}
 for codename in NETWORKS:
     # Accept the output of a kernel (<codename>/best.pt) and a dataset (<codename>.pt).
-    found = [p for p in Path("/kaggle/input").rglob("*.pt") if codename in str(p)]
+    # Compare complete names: the kernel name "sigk-p2-train-v2ab" contains "train-v2a".
+    found = [p for p in Path("/kaggle/input").rglob("*.pt") if codename in (p.parent.name, p.stem)]
     assert len(found) == 1, f"weights of {codename}: {found}"
     weights[codename] = (NETWORKS[codename], found[0])
 print("weights", weights)

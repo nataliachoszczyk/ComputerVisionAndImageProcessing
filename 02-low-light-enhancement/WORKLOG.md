@@ -12,7 +12,7 @@
 | 2026-11-07 | train-v1ab | [sigk-p2-train-v1ab](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-train-v1ab) | Codenames `train-v1a` (U-Net), `train-v1b` (U-Net with a global branch). 15000 steps, patch size 256, batch size 16, L1 loss (GPU). Result: `train-v1a` PSNR 19.78, SSIM 0.398, LPIPS 0.520. `train-v1b` PSNR 24.07, SSIM 0.587, LPIPS 0.346. | complete |
 | 2026-11-07 | train-v1c | [sigk-p2-train-v1c](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-train-v1c) | Codename `train-v1c` (NAFNet). Same settings as `train-v1ab` (GPU). Result: PSNR 20.95, SSIM 0.631, LPIPS 0.384 (2.6 h). | complete |
 | 2026-11-07 | train-v2ab | [sigk-p2-train-v2ab](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-train-v2ab) | Codenames `train-v2a` (U-Net with a global branch, 40000 steps), `train-v2b` (NAFNet with a global branch, 15000 steps). Other settings as `train-v1ab` (GPU). Result: `train-v2a` PSNR 26.00, SSIM 0.716, LPIPS 0.271. `train-v2b` PSNR 24.71, SSIM 0.719, LPIPS 0.286 (3.0 h). | complete |
-| 2026-11-10 | analysis-v1 | [sigk-p2-analysis-v1](https://www.kaggle.com/code/mikoajrowicki/sigk-p2-analysis-v1) | Analyze the colors and the clipped highlights of `baseline`, `train-v2a` and `train-v2b` on the test set (GPU). The weights come from the output of `train-v2ab`. Version 1 (T4 x2) waited in the queue and was cancelled without a start (unknown cause). Version 2 uses a P100, with the CPU if the GPU does not work. | queued |
+| 2026-11-10 | analysis-v1 | [sigk-p2-analysis-v1](https://www.kaggle.com/code/mikoajrowicki/sigk-p2-analysis-v1) | Analyze the colors and the clipped highlights of `baseline`, `train-v2a` and `train-v2b` on the test set (GPU). The weights come from the output of `train-v2ab`. Version 1 (T4 x2) waited in the queue and was cancelled without a start (unknown cause). Version 2 uses a P100, with the CPU if the GPU does not work. Version 2 stopped after 22 s: the search for the weights found two files, because the kernel name `sigk-p2-train-v2ab` contains `train-v2a`. Kaggle gave a T4, not a P100. | failed |
 
 ## Log
 
@@ -62,3 +62,8 @@
 - Add `analysis.py`: the errors in shadows, midtones, highlights and clipped regions of the ground truth, the errors of the exposure and of the colors, and crops of the worst regions.
 - Do a local test of `analysis.py` on 3 test images with random weights (CPU).
 - Add the job `analysis-v1`.
+
+### 2026-11-15
+
+- Remove a wrong attribution line from the messages of the two commits of 2026-11-14.
+- Correct the search for the weights in `jobs/analysis-v1/run.py`: compare the complete folder name or file name.
