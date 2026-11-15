@@ -150,8 +150,42 @@ Na koniec pokazujemy wycinki z dwóch najbardziej prześwietlonych zdjęć oraz 
 
 ### 5.2. Wyniki
 
-*W przygotowaniu: wyniki joba `analysis-v1`.*
+Wartości to średnie z 20 zdjęć testowych.
+
+| Miara | baseline | `train-v2a` | `train-v2b` |
+|---|---:|---:|---:|
+| PSNR [dB] | 11.32 | **26.00** | 24.71 |
+| PSNR po dopasowaniu wzmocnienia [dB] | 16.80 | **28.84** | 28.26 |
+| ekspozycja (wynik / wzorzec, idealnie 1) | 3.20 | **0.97** | 0.93 |
+| zafarb [°] | 12.9 | **0.4** | 0.6 |
+| różnica kolorów ΔE | 33.3 | **7.5** | 8.2 |
+| nasycenie (wynik / wzorzec, idealnie 1) | 0.73 | **0.91** | 0.89 |
+| odtworzone prześwietlenia wzorca [%] | 83 | 47 | 40 |
+| niepotrzebnie prześwietlone piksele [%] | 3.7 | **0.1** | 0.2 |
+
+![Błąd w regionach obrazu](results/analysis-v1/regions.png)
+
+![Ekspozycja i PSNR w zależności od wzmocnienia](results/analysis-v1/exposure.png)
+
+![Kolory i prześwietlenia dla każdego zdjęcia](results/analysis-v1/colors.png)
+
+![Wycinki: najbardziej prześwietlone zdjęcia i największy błąd koloru](results/analysis-v1/crops.png)
+
+**Kolory.** Sieć odtwarza kolory bardzo dobrze. Średni zafarb `train-v2a` to 0.4° (najwyżej 0.9°), wobec 12.9° dla metody bazowej, a różnica kolorów ΔE spada z 33.3 do 7.5. Metoda bazowa przesuwa barwy, bo rozciąga tylko kanał jasności, a ciemne wejście ma inne proporcje kanałów niż wzorzec. Kolory sieci są jednak nieco wyblakłe: nasycenie wynosi średnio 91% wzorca. Najbardziej widać to na najbardziej kolorowych i najjaśniejszych scenach. Dla witraża (`r7964e5f8t`) to 79%, a dla zdjęcia z największym udziałem prześwietleń (`redaf7d93t`) 74%. Szum w ciemnym wejściu jest silnie kolorowy, więc sieć, usuwając go, usuwa też część prawdziwego koloru.
+
+**Ocena jasności sceny.** To największe źródło błędu sieci. Średnio ekspozycja jest prawie poprawna (0.97), ale błędy w obie strony się znoszą. Stosunek ekspozycji silnie maleje ze wzmocnieniem wzorca (korelacja Spearmana −0.71 dla `train-v2a`):
+
+- przy wzmocnieniu ≥ 10 wszystkie 9 zdjęć wychodzą za ciemne (0.71–0.94),
+- przy wzmocnieniu < 8 zdjęcia wychodzą zwykle za jasne (0.92–1.47).
+
+Sieć ściąga więc swoją ocenę w stronę typowej jasności. Nie wynika to z braku takich zdjęć w treningu: wzmocnienie ≥ 10 ma 27 z 69 zdjęć treningowych. Prawdopodobna przyczyna to sposób działania automatycznej jasności. Dobiera ona wzmocnienie tak, żeby przyciąć około 1% najjaśniejszych pikseli sceny. Na miniaturze 128×128, która uśrednia obszary około 13×19 pikseli, małe jasne elementy (lampy, okna) prawie znikają, więc gałąź globalna widzi tylko przybliżenie tej informacji. Ten błąd tłumaczy najgorsze wyniki. Po samym dopasowaniu wzmocnienia PSNR rośnie dla `r19d72b0ct` z 21.6 do 29.9 dB, dla `r5211d294t` z 20.1 do 27.9 dB, a dla `re3555814t` z 25.5 do 32.6 dB. W wycinku gładkiej ściany z `r5211d294t` błąd jest równomierny na całej powierzchni, czyli jest to czysty błąd ekspozycji, a nie szczegółów. Dla metody bazowej problem jest dużo większy: ekspozycja waha się od 0.65 do 12, bo wyrównanie histogramu rozjaśnia ciemne sceny tak samo mocno jak jasne.
+
+**Prześwietlenia.** Sieć odtwarza prześwietlenia zachowawczo. Tylko 47% prześwietlonych pikseli wzorca jest prześwietlonych także w wyniku `train-v2a`, a jasne partie i prześwietlenia są średnio o około 6 poziomów (w skali 0–255) za ciemne. W zamian sieć prawie nigdy nie prześwietla niepotrzebnie (0.1% pikseli, wobec 3.7% dla metody bazowej). Odtworzenie prześwietleń zależy od ekspozycji: na zdjęciach z ekspozycją poniżej 0.9 spada zwykle do kilku procent, a na zdjęciach z ekspozycją ≥ 1 wynosi zwykle ponad 80%. Wejście nie mówi wprost, które piksele we wzorcu przekroczyły zakres, bo po obniżeniu ekspozycji o 3 EV jego wartości sięgają najwyżej około 99 z 255. Sieć musi to zgadywać z oceny jasności sceny. `train-v2b` jest w jasnych partiach jeszcze ciemniejszy (−11 poziomów) i odtwarza tylko 40% prześwietleń.
+
+**Cienie i szczegóły.** W cieniach wynik sieci jest średnio o 4 poziomy za jasny. Sieć nie odtwarza pełnej czerni, co jest typowym śladem odszumiania przy bardzo słabym sygnale. Wycinki pokazują też, że najdrobniejsze struktury, na przykład wzór gilosza na bilecie (`rc589a8d6t`) albo cienkie linie witraża, zostają wygładzone. Ich kontrast w ciemnym wejściu był mniejszy niż szum.
 
 ## 6. Podsumowanie
 
 Sieć U-Net z gałęzią globalną (`train-v2a`) poprawia zdjęcie z symulowanego słabego oświetlenia z PSNR 26.0 dB, SSIM 0.716 i LPIPS 0.271, wobec 11.3 dB, 0.152 i 1.077 dla wyrównania histogramu. Kluczowe okazało się zrozumienie danych. Obraz wzorcowy ma automatycznie dobraną jasność, więc zadanie to nie tylko odszumianie i stałe rozjaśnienie ×8, ale też ocena jasności całej sceny. Mała gałąź, która widzi miniaturę całego zdjęcia, dała więcej niż zmiana architektury na pięciokrotnie większy NAFNet.
+
+Analiza przypadków szczególnych pokazuje, że sieć dobrze odtwarza kolory (zafarb poniżej 1°), choć lekko je wygasza. Jej główną słabością pozostaje ocena jasności sceny: zdjęcia z dużym wzmocnieniem wychodzą za ciemne, a ciemne sceny za jasne. Z tego samego powodu sieć odtwarza tylko około połowy prześwietleń, za to prawie nigdy nie prześwietla niepotrzebnie. Naturalnym następnym krokiem byłoby więc lepsze przewidywanie jasności sceny, na przykład przez podanie gałęzi globalnej histogramu albo najjaśniejszych wartości całego wejścia, które miniatura uśrednia. Większa sieć do samego odszumiania niewiele by tu zmieniła.
