@@ -1,0 +1,75 @@
+# Work log: project 2
+
+## Jobs
+
+| Date | Job | Link | Comment | Status |
+|---|---|---|---|---|
+| 2026-11-05 | data-v1 | [sigk-p2-data-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-data-v1) | Stop after 4 s: the Kaggle image has no rawpy. | failed |
+| 2026-11-05 | data-v2 | [sigk-p2-data-v2](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-data-v2) | Same as data-v1, and install rawpy. Result: 100 NEF files, 100 ground truth images, 100 input images, `raise100-set.zip` (1585 MB, CPU, 17 min). | complete |
+| 2026-11-05 | eda-v1 | [sigk-p2-eda-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-eda-v1) | Compute the statistics and the figures of the 100 image pairs (CPU). Result: median linear gain is 7.5 (train), 21.4 (val), 8.5 (test). | complete |
+| 2026-11-05 | baseline-v1 | [sigk-p2-baseline-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-baseline-v1) | Codenames `eda-v2`, `baseline-v1`. Repeat the analysis with the final split. Score histogram equalization on the test set (CPU). Result: PSNR 11.32, SSIM 0.152, LPIPS 1.077. | complete |
+| 2026-11-07 | train-smoke | [sigk-p2-train-smoke](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-train-smoke) | Codenames `smoke-a`, `smoke-b`, `smoke-c`. Test all steps of the three models on 3 images of each split, and measure the speed (GPU). Result: all steps work in 4 min. U-Net: 100 steps in 15 s. NAFNet: 100 steps in 67 s. | complete |
+| 2026-11-07 | train-v1ab | [sigk-p2-train-v1ab](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-train-v1ab) | Codenames `train-v1a` (U-Net), `train-v1b` (U-Net with a global branch). 15000 steps, patch size 256, batch size 16, L1 loss (GPU). Result: `train-v1a` PSNR 19.78, SSIM 0.398, LPIPS 0.520. `train-v1b` PSNR 24.07, SSIM 0.587, LPIPS 0.346. | complete |
+| 2026-11-07 | train-v1c | [sigk-p2-train-v1c](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-train-v1c) | Codename `train-v1c` (NAFNet). Same settings as `train-v1ab` (GPU). Result: PSNR 20.95, SSIM 0.631, LPIPS 0.384 (2.6 h). | complete |
+| 2026-11-07 | train-v2ab | [sigk-p2-train-v2ab](https://www.kaggle.com/code/nataliachoszczyk/sigk-p2-train-v2ab) | Codenames `train-v2a` (U-Net with a global branch, 40000 steps), `train-v2b` (NAFNet with a global branch, 15000 steps). Other settings as `train-v1ab` (GPU). Result: `train-v2a` PSNR 26.00, SSIM 0.716, LPIPS 0.271. `train-v2b` PSNR 24.71, SSIM 0.719, LPIPS 0.286 (3.0 h). | complete |
+| 2026-11-10 | analysis-v1 | [sigk-p2-analysis-v1](https://www.kaggle.com/code/mikoajrowicki/sigk-p2-analysis-v1) | Analyze the colors and the clipped highlights of `baseline`, `train-v2a` and `train-v2b` on the test set (GPU). The weights come from the output of `train-v2ab`. Version 1 (T4 x2) waited in the queue and was cancelled without a start (unknown cause). Version 2 uses a P100, with the CPU if the GPU does not work. Version 2 stopped after 22 s: the search for the weights found two files, because the kernel name `sigk-p2-train-v2ab` contains `train-v2a`. Kaggle gave a T4, not a P100. Version 3 found the correct weights (T4, 5 min). Result: the PSNR is the same as in `train-v2ab`. `train-v2a`: color cast 0.4 degrees, ΔE 7.5, saturation 0.91, exposure ratio 0.71-0.94 for a gain >= 10, 47% of the clipped pixels kept. | complete |
+
+## Log
+
+### 2026-11-05
+
+- Add the root `requirements.txt` and make the `.venv`.
+- Change `KAGGLE.md` and the local rules for this repository and for a simple structure.
+- Test the Kaggle connection with a private test kernel, `sigk-p2-smoke`.
+- Results of the test:
+  - The kernel has 2 Tesla T4 GPUs, Python 3.13 and internet access.
+  - The kernel can clone the repository.
+  - The kernel can download a NEF file from the RAISE server.
+  - The kernel can decode the NEF file with rawpy.
+- Add `data.py` with the data preparation script from the task text.
+- Do a local test of `data.py` on one NEF file. The ground truth image and the input image have the same size.
+- Add the job `data-v1`.
+- Add the job `data-v2`, because `data-v1` failed without rawpy.
+- Make the private dataset `sigk-p2-raise100` from the output of `data-v2`, and share it with the team.
+- Add the split, the statistics and the figures to `data.py`. Add the job `eda-v1`.
+- Add the results of `eda-v1` and `experiments.ipynb`.
+- Change the val split to the images 43-53, because the median gain of the old val split is 21.4. The results of `eda-v1` use the old split.
+- Add `LowLightDataset` to `data.py`.
+- Add `metrics.py` with PSNR, SSIM, LPIPS and the histogram equalization baseline.
+- Add the job `baseline-v1`.
+- Add the results of `eda-v2` and `baseline-v1` to `experiments.ipynb`.
+
+### 2026-11-07
+
+- Add `model.py` with U-Net, U-Net with a global branch and NAFNet.
+- Add `training.py` with the training, the prediction on tiles and the experiment function.
+- Add a thumbnail of the full image to the patches of `LowLightDataset`.
+- Do a local test of all steps on synthetic images (CPU).
+- Add the job `train-smoke`.
+- Add the jobs `train-v1ab` and `train-v1c`. The number of steps comes from the speed of NAFNet in `train-smoke`.
+- Add the results of `train-v1a` and `train-v1b`.
+- Add the results of `train-v1c`.
+- Add the global branch to NAFNet (`nafnet-global`).
+- Add the job `train-v2ab`. One session for the two experiments uses less GPU time than two sessions.
+- Translate the text of `experiments.ipynb` to English.
+- Add the results of `train-v2a` and `train-v2b`.
+
+### 2026-11-10
+
+- Add the local `.venv` and the Kaggle CLI on the second account (`mikoajrowicki`).
+- Add the training results, the learning curves, the PSNR of each test image and the observations to `experiments.ipynb`.
+- Move the colors of the methods to `data.py`.
+- Add `analysis.py`: the errors in shadows, midtones, highlights and clipped regions of the ground truth, the errors of the exposure and of the colors, and crops of the worst regions.
+- Do a local test of `analysis.py` on 3 test images with random weights (CPU).
+- Add the job `analysis-v1`.
+
+### 2026-11-15
+
+- Remove a wrong attribution line from the messages of the two commits of 2026-11-14.
+- Correct the search for the weights in `jobs/analysis-v1/run.py`: compare the complete folder name or file name.
+- Save the learning curves and the PSNR of each test image from `experiments.ipynb` to `results/summary/`.
+- Add a draft of `SUMMARY.md` (in Polish). Section 5.2 waits for the results of `analysis-v1`.
+- Add the results of `analysis-v1` to `results/analysis-v1/`.
+- Add the section about the colors and the clipped highlights to `experiments.ipynb`.
+- Add section 5.2 and the conclusions about the colors and the clipped highlights to `SUMMARY.md`.
+- Correct and extend `SUMMARY.md`: the rule of the auto brightness (1.2), the U shape of both networks (3.1), a contradiction about the exposure (4), the rounding of the baseline PSNR and the share of the kept clipped pixels (5.2).

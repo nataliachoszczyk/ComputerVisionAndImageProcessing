@@ -1,0 +1,20 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+torch
+torchvision
+numpy
+pandas
+matplotlib
+scikit-image
+opencv-python-headless
+lpips
+rawpy
+imageio
+requests
+tqdm
+pyyaml
+ipykernel
+
+kaggle==2.2.5
+# kaggle 2.2.5 imports six, but does not declare it.
+six

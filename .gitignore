@@ -6,3 +6,11 @@ data/
 outputs/
 *.pt
 *.pth
+*.zip
+*.NEF
+.venv/
+CLAUDE.local.md
+
+*.npy
+*.npz
+*.log
