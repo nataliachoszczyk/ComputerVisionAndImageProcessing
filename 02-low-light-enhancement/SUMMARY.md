@@ -42,7 +42,7 @@ Dla sieci oznacza to, że oprócz odszumienia **musi ona oszacować, jak bardzo 
 
 ![Histogramy wartości pikseli wzorca i wejścia](results/eda-v2/histograms.png)
 
-![Wzmocnienie, prześwietlenia i czarne piksele dla każdego zdjęcia](results/eda-v2/per_image.png)
+![Wzmocnienie gain dla każdego zdjęcia](results/summary/gain_per_image.png)
 
 ![Przykładowe pary: wejście i obraz wzorcowy](results/eda-v2/samples.png)
 
