@@ -28,3 +28,20 @@
 - Do a local test with 3000 images (10 s). The sphere center agrees with the parameters. No sphere touches the image border.
 - Add the job `data-v1`.
 - Add the results of `data-v1` in `results/data-v1/`: the parameters and a preview of 32 images.
+- Add `metrics.py` with FLIP, LPIPS, SSIM and the Hausdorff distance between Canny edges.
+  - The Canny thresholds are 50 and 150. With these thresholds, all 600 test images have edges.
+  - If only one image has edges, the Hausdorff distance is the image diagonal (181 px).
+- Do a local test of the metrics on 100 test images (mean values):
+
+  | Change | FLIP | LPIPS | SSIM | Hausdorff |
+  |---|---|---|---|---|
+  | same image | 0.0000 | 0.0000 | 1.0000 | 0.00 |
+  | shift 2 px | 0.0055 | 0.0164 | 0.9894 | 2.00 |
+  | shift 10 px | 0.0122 | 0.0772 | 0.9730 | 14.04 |
+  | swap R and B | 0.0030 | 0.0203 | 0.9971 | 0.97 |
+  | 50% darker | 0.0060 | 0.0297 | 0.9944 | 1.63 |
+  | black image | 0.0073 | 0.1960 | 0.9822 | 181.02 |
+
+- A black image gets a better FLIP than a shift of 10 px, and an SSIM of 0.98. The cause: most pixels of the images are black.
+- For the report: use this test to answer the question of the task "Do all metrics show the quality well?". FLIP and SSIM give a mean over all pixels, and most pixels are background.
+- Decisions: the model is a GAN. The results table has no baseline row.

@@ -1,0 +1,61 @@
+"""The four metrics of the task: FLIP, LPIPS, SSIM and the Hausdorff distance between Canny edges.
+
+All functions take RGB images as float arrays of shape (H, W, 3) with values in [0, 1].
+"""
+import cv2
+import lpips
+import numpy as np
+import pandas as pd
+import torch
+from flip_evaluator import evaluate as flip_evaluate
+from scipy.spatial.distance import directed_hausdorff
+from skimage.metrics import structural_similarity
+
+CANNY_THRESHOLDS = (50, 150)
+METRICS = ["FLIP", "LPIPS", "SSIM", "Hausdorff"]
+
+_lpips_model = None
+
+
+def flip(pred, target):
+    return float(flip_evaluate(target.astype(np.float32), pred.astype(np.float32), "LDR",
+                               applyMagma=False)[1])
+
+
+def lpips_score(pred, target):
+    global _lpips_model
+    if _lpips_model is None:
+        _lpips_model = lpips.LPIPS(net="alex", verbose=False).eval()
+    to_tensor = lambda img: torch.from_numpy(np.ascontiguousarray(img)).permute(2, 0, 1)[None].float()
+    with torch.no_grad():
+        return _lpips_model(to_tensor(pred), to_tensor(target), normalize=True).item()
+
+
+def ssim(pred, target):
+    return float(structural_similarity(pred, target, channel_axis=2, data_range=1.0))
+
+
+def edges(img):
+    gray = cv2.cvtColor((img * 255).round().astype(np.uint8), cv2.COLOR_RGB2GRAY)
+    return np.argwhere(cv2.Canny(gray, *CANNY_THRESHOLDS) > 0)
+
+
+def hausdorff(pred, target):
+    """Symmetric Hausdorff distance in pixels between the edge pixels of the two images."""
+    a, b = edges(pred), edges(target)
+    if len(a) == 0 and len(b) == 0:
+        return 0.0
+    if len(a) == 0 or len(b) == 0:
+        # The distance is not defined. The image diagonal is the largest possible distance.
+        return float(np.hypot(*pred.shape[:2]))
+    return float(max(directed_hausdorff(a, b)[0], directed_hausdorff(b, a)[0]))
+
+
+def score(pred, target):
+    return {"FLIP": flip(pred, target), "LPIPS": lpips_score(pred, target),
+            "SSIM": ssim(pred, target), "Hausdorff": hausdorff(pred, target)}
+
+
+def evaluate(preds, targets):
+    """One row of metrics for each image pair."""
+    return pd.DataFrame([score(p, t) for p, t in zip(preds, targets)])
