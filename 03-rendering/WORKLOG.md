@@ -6,6 +6,7 @@
 |---|---|---|---|---|
 | 2026-11-17 | gl-smoke | [sigk-p3-gl-smoke](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-gl-smoke) | Test OpenGL without a display (CPU). Result: the default backend fails (no X display). The `egl` backend works with Mesa llvmpipe, without apt. 3000 frames of 128x128 in 0.78 s. The headless window of `moderngl_window` also works. | complete |
 | 2026-11-17 | data-v1 | [sigk-p3-data-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-data-v1) | Render 3000 images of 128x128 with seed 0 (CPU, EGL). Result: `data-v1-set.zip` with the images and `params.csv`, 2400 train and 600 test images. Rendering takes 10 s, the full job 24 s. | complete |
+| 2026-11-17 | train-smoke | [sigk-p3-train-smoke](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-smoke) | All steps of the four variants (`smoke-a` to `smoke-d`) with 300 steps each. Measure the speed. | running |
 
 ## Log
 
@@ -54,6 +55,28 @@
   - the shininess scaled to [0, 1].
 - Add `load_split` to `data.py`. It reads one split from the folder or the zip of the data set.
 - Test the features locally on 3000 images. The sphere center agrees with the image to 0.9 px. The measured radius is 0.97-1.07 times the computed radius.
+
+### 2026-11-17 (night)
+
+- Add `raw_features` to `data.py`. It is the direct input for the comparison with hint 1 of the task.
+- Add the mirror augmentation to `data.py`. A mirror in a plane through the camera axis flips the image and gives a correct new scene. The test shows that the features change as expected (the x or y values change sign).
+- Change `load_split`. It returns the parameters and the uint8 images, so the training can make the inputs of each variant.
+- Add `model.py`:
+  - The generator starts from a 4x4 map. Each block gets the inputs as constant channels, the pixel coordinates and the coordinates relative to the sphere.
+  - The output has a sigmoid, so the background can be exact black. A noisy background gives false Canny edges.
+  - The discriminator is a conditional PatchGAN with spectral normalization (16x16 patches).
+- Add `training.py`:
+  - The L1 loss gives the same weight to the sphere region and to the background. Most pixels are background.
+  - The GAN loss is least squares. The generator for the scores is the mean of the weights (EMA, decay 0.999).
+  - The last 200 train images are the tune set. The checkpoint with the best tune LPIPS is kept.
+  - At the end: the scores on the 600 test images, a figure with examples and FLIP error maps, and the time of one image.
+- Add `flip_map` to `metrics.py` for the figures.
+- Plan of the experiments (one change for each variant):
+  - `a`: GAN + L1, features, relative coordinates (main model),
+  - `b`: only L1, no GAN,
+  - `c`: raw parameters, no relative coordinates (hint 1),
+  - `d`: features, no relative coordinates.
+- Add the job `train-smoke`.
 
 ## State and next steps (2026-11-17)
 

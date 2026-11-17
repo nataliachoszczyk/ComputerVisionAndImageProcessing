@@ -22,6 +22,11 @@ def flip(pred, target):
                                applyMagma=False)[1])
 
 
+def flip_map(pred, target):
+    """The FLIP error of each pixel with the magma color map, as an RGB image."""
+    return np.asarray(flip_evaluate(target.astype(np.float32), pred.astype(np.float32), "LDR")[0])
+
+
 def lpips_score(pred, target):
     global _lpips_model
     if _lpips_model is None:

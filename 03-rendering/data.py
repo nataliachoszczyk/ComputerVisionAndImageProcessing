@@ -104,8 +104,40 @@ def features(params):
                       diffuse, shininess]).astype(np.float32)
 
 
+def raw_features(params):
+    """The scene parameters with only a linear scale to [-1, 1]. Compare with features() for hint 1 of the task."""
+    positions = params[["object_x", "object_y", "object_z", "light_x", "light_y", "light_z"]].to_numpy() / POSITION_RANGE
+    diffuse = params[["diffuse_r", "diffuse_g", "diffuse_b"]].to_numpy() / 255.0
+    shininess = (params[["shininess"]].to_numpy() - SHININESS_RANGE[0]) / (SHININESS_RANGE[1] - SHININESS_RANGE[0])
+    return np.hstack([positions, diffuse, shininess]).astype(np.float32)
+
+
+INPUTS = {"features": features, "raw": raw_features}
+
+
+def mirror(params, images, axis):
+    """Mirror the scene in a plane through the camera axis. The camera does not change, thus the image flips.
+
+    axis 0 flips the image left to right, axis 1 flips it top to bottom. The Phong model has no preferred side,
+    thus the mirror scene is a correct new sample. Images are (N, 3, H, W).
+    """
+    normal = camera_basis()[axis]
+    params = params.copy()
+    for columns in (["object_x", "object_y", "object_z"], ["light_x", "light_y", "light_z"]):
+        points = params[columns].to_numpy()
+        params[columns] = points - 2 * ((points - CAMERA_POSITION) @ normal)[:, None] * normal
+    return params, images.flip(3 if axis == 0 else 2)
+
+
+def augment(params, images):
+    """The data and its three mirror versions (left-right, top-bottom and both)."""
+    flip_x = mirror(params, images, 0)
+    versions = [(params, images), flip_x, mirror(params, images, 1), mirror(*flip_x, 1)]
+    return (pd.concat([v[0] for v in versions], ignore_index=True), torch.cat([v[1] for v in versions]))
+
+
 def load_split(source, split):
-    """Load one split from the data set folder or zip. Returns the features (N, F) and images (N, 3, H, W) in [0, 1]."""
+    """Load one split from the data set folder or zip. Returns the parameters and the uint8 images (N, 3, H, W)."""
     source = Path(source)
     if source.suffix == ".zip":
         archive = zipfile.ZipFile(source)
@@ -116,6 +148,4 @@ def load_split(source, split):
     params = params[params["split"] == split].reset_index(drop=True)
     images = np.stack([np.asarray(Image.open(io.BytesIO(read(f"image_{i:04}.png"))).convert("RGB"))
                        for i in params["index"]])
-    x = torch.from_numpy(features(params))
-    y = torch.from_numpy(images).permute(0, 3, 1, 2).contiguous()
-    return x, y.float() / 255.0
+    return params, torch.from_numpy(images).permute(0, 3, 1, 2).contiguous()
