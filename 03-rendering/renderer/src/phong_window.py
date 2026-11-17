@@ -34,33 +34,34 @@ class PhongWindow(BaseWindow):
         self.light_position = self.program["light_position"]
         self.camera_position = self.program["camera_position"]
 
-    def on_render(self, time: float, frame_time: float):
-        self.ctx.clear(0.0, 0.0, 0.0, 0.0)
+    def draw_scene(self, scene):
+        """Draw the scene into the current framebuffer."""
         self.ctx.enable(moderngl.DEPTH_TEST | moderngl.CULL_FACE)
-
-        scene = sample_scene(self.rng)
-        material_diffuse = scene["diffuse"] / 255.0
-
         model_matrix = Matrix44.from_translation(scene["object_position"])
-        proj = Matrix44.perspective_projection(FOV_DEGREES, self.aspect_ratio, NEAR, 1000.0)
+        # The images are square, also in a wider window (NeuralWindow).
+        proj = Matrix44.perspective_projection(FOV_DEGREES, 1.0, NEAR, 1000.0)
         lookat = Matrix44.look_at(CAMERA_POSITION, CAMERA_TARGET, CAMERA_UP)
-
         model_view_projection = proj * lookat * model_matrix
 
         self.model_view_projection.write(model_view_projection.astype('f4').tobytes())
         self.model_matrix.write(model_matrix.astype('f4').tobytes())
-        self.material_diffuse.write(np.array(material_diffuse, dtype='f4').tobytes())
+        self.material_diffuse.write(np.array(scene["diffuse"] / 255.0, dtype='f4').tobytes())
         self.material_shininess.write(np.array([scene["shininess"]], dtype='f4').tobytes())
         self.light_position.write(np.array(scene["light_position"], dtype='f4').tobytes())
         self.camera_position.write(np.array(CAMERA_POSITION, dtype='f4').tobytes())
-
         self.vao.render()
+
+    @staticmethod
+    def read_image(fbo):
+        """The framebuffer as an RGB image with the first row at the top."""
+        return Image.frombuffer('RGB', fbo.size, fbo.read(components=3)).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+
+    def on_render(self, time: float, frame_time: float):
+        self.ctx.clear(0.0, 0.0, 0.0, 0.0)
+        scene = sample_scene(self.rng)
+        self.draw_scene(scene)
         if self.output_path:
-            img = (
-                Image.frombuffer('RGB', self.wnd.size, self.wnd.fbo.read(components=3))
-                     .transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-            )
-            img.save(os.path.join(self.output_path, f'image_{self.frame:04}.png'))
+            self.read_image(self.wnd.fbo).save(os.path.join(self.output_path, f'image_{self.frame:04}.png'))
             self.rows.append(scene_row(self.frame, scene))
         self.frame += 1
 
