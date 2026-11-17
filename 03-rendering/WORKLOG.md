@@ -45,3 +45,12 @@
 - A black image gets a better FLIP than a shift of 10 px, and an SSIM of 0.98. The cause: most pixels of the images are black.
 - For the report: use this test to answer the question of the task "Do all metrics show the quality well?". FLIP and SSIM give a mean over all pixels, and most pixels are background.
 - Decisions: the model is a GAN. The results table has no baseline row.
+- Add the input features of the network to `data.py` (11 values):
+  - the position of the sphere in the image (normalized device coordinates),
+  - the log of the image radius of the sphere,
+  - the direction from the sphere to the light in camera coordinates,
+  - the distance from the sphere to the light,
+  - the diffuse color divided by 255,
+  - the shininess scaled to [0, 1].
+- Add `load_split` to `data.py`. It reads one split from the folder or the zip of the data set.
+- Test the features locally on 3000 images. The sphere center agrees with the image to 0.9 px. The measured radius is 0.97-1.07 times the computed radius.
