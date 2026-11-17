@@ -10,7 +10,7 @@
 | 2026-11-17 | train-smoke2 | [sigk-p3-train-smoke2](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-smoke2) | The four variants (`smoke2-a` to `smoke2-d`) with 3000 steps, after the changes below. Does the generator leave the black image? Speed with AMP. Result: `a` and `b` learn (tune LPIPS 0.017, Hausdorff 5). `c` and `d` stay at a black image after 3000 steps. A GAN step takes 0.1 s, an L1 step 0.07 s. The discriminator gives 0.5 everywhere (`loss_d` 0.50, `loss_adv` 0.25), thus `a` is equal to `b`. | complete |
 | 2026-11-17 | train-smoke3 | [sigk-p3-train-smoke3](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-smoke3) | The GAN loss only on the sphere patches. 3000 steps with the GAN weight 1 (`smoke3-a`) and 5 (`smoke3-e`). Result: the discriminator learns (`loss_d` 0.25-0.32). Tune scores after 3000 steps: weight 1: FLIP 0.0066, LPIPS 0.0135, Hausdorff 4.4; weight 5: FLIP 0.0073, LPIPS 0.0122, Hausdorff 2.5. Only L1 (`smoke2-b`): FLIP 0.0047, LPIPS 0.0171, Hausdorff 5.1. | complete |
 | 2026-11-17 | train-v1 | [sigk-p3-train-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v1) | Full training, 40000 steps: `gan-v1a` (GAN weight 5, main), `gan-v1b` (only L1), `gan-v1c` (raw parameters), `gan-v1d` (no relative coordinates). | running |
-| 2026-11-17 | train-v1ef | [sigk-p3-train-v1ef](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v1ef) | Full training, 40000 steps: `gan-v1e` (GAN weight 1), `gan-v1f` (`gan-v1a` with seed 1). | running |
+| 2026-11-17 | train-v1ef | [sigk-p3-train-v1ef](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v1ef) | Full training, 40000 steps: `gan-v1e` (GAN weight 1), `gan-v1f` (`gan-v1a` with seed 1). Result (600 test images): `gan-v1e` FLIP 0.00136, LPIPS 0.00134, SSIM 0.99934, Hausdorff 1.58; `gan-v1f` FLIP 0.00131, LPIPS 0.00103, SSIM 0.99936, Hausdorff 1.50. The best checkpoint is the last step. 72 min for each run. | complete |
 
 ## Log
 
@@ -107,6 +107,14 @@
   - Bad cases: the light is behind the sphere. The reference has a bright edge around the sphere. The GAN draws a bright spot instead.
 - Decision: the main model uses the GAN weight 5 (best LPIPS and Hausdorff). The weight 1 is the variant `gan-v1e`.
 - Add the jobs `train-v1` and `train-v1ef`.
+
+### 2026-11-18
+
+- Add the results of `train-v1ef` in `results/gan-v1e/` and `results/gan-v1f/`.
+- The tune metrics decrease until the last step (40000). A longer training can give a small improvement.
+- The images of `gan-v1f`:
+  - The best images have no visible difference.
+  - The worst images: the light is behind the sphere. The network draws the bright edge, but the edge is smooth and has a weak color. The edge of the reference has steps from the mesh.
 
 ## State and next steps (2026-11-17)
 
