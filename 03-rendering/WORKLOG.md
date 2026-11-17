@@ -54,3 +54,43 @@
   - the shininess scaled to [0, 1].
 - Add `load_split` to `data.py`. It reads one split from the folder or the zip of the data set.
 - Test the features locally on 3000 images. The sphere center agrees with the image to 0.9 px. The measured radius is 0.97-1.07 times the computed radius.
+
+## State and next steps (2026-11-17)
+
+### State
+
+- The branch `pro3` is on GitHub. It has the renderer changes, `data.py`, `metrics.py` and the job `data-v1`.
+- The data set is the output of the kernel `sigk-p3-data-v1` (`data-v1-set.zip`). There is no separate Kaggle dataset, because only one person does the work. A training job uses `"kernel_sources": ["nataliachoszczyk/sigk-p3-data-v1"]`.
+- To make the same data set locally (seed 0, 10 s), use this command in the root folder:
+
+  ```bash
+  .venv/Scripts/python 03-rendering/renderer/src/main.py --window headless --n_images 3000 --output_path <folder>
+  ```
+
+  On Kaggle, also use `--backend egl`.
+
+### Decisions
+
+- The model is a conditional GAN. Do a diffusion model only if time remains.
+- The results table has no baseline row.
+- The position ranges are the ranges of the task text. Two limits apply (answer to hint 2): the full sphere is in the view, and the light is not in the sphere.
+- Most spheres are small (median diameter approximately 10 px).
+
+### Plan of the GAN
+
+- `model.py`:
+  - The generator changes the 11 features to an image. It starts from a 4x4 map and doubles the size to 128x128.
+  - Each block of the generator gets two coordinate channels (CoordConv), because the sphere position must be exact.
+  - The discriminator is a conditional PatchGAN. It gets the image and the 11 features as constant channels.
+- `training.py`: the GAN loss plus an L1 loss (as in pix2pix). Save the weights and calculate the metrics on the 600 test images.
+- Estimate for the full training on a T4: 20-40 min (approximately 15000 steps, batch size 32).
+
+### Next steps
+
+1. Write `model.py` and `training.py`. Do a short test on the CPU.
+2. Do a smoke job on the Kaggle GPU. Measure the speed.
+3. Do the full training on Kaggle. Look at the images and the metrics. Change the model if necessary.
+4. Connect the network to the renderer: for the same scene, show the Phong image and the network image side by side.
+5. Calculate the metrics on the test set. Show good and bad cases and the FLIP error maps in `experiments.ipynb`.
+6. Write `SUMMARY.md` in Polish. Use the metrics test above for the question about the metrics.
+7. At the end, merge `pro3` into `main` and change the README files.
