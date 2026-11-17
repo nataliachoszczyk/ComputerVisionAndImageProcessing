@@ -64,3 +64,19 @@ def score(pred, target):
 def evaluate(preds, targets):
     """One row of metrics for each image pair."""
     return pd.DataFrame([score(p, t) for p, t in zip(preds, targets)])
+
+
+CHANGES = {
+    "same image": lambda img: img,
+    "shift 2 px": lambda img: np.roll(img, 2, axis=1),
+    "shift 10 px": lambda img: np.roll(img, 10, axis=1),
+    "swap R and B": lambda img: img[..., ::-1],
+    "50% darker": lambda img: img * 0.5,
+    "black image": lambda img: np.zeros_like(img),
+}
+
+
+def change_test(targets):
+    """Mean metrics of simple changes of the reference images. It shows which errors each metric sees."""
+    return pd.DataFrame({name: evaluate([change(t) for t in targets], targets).mean()
+                         for name, change in CHANGES.items()}).T

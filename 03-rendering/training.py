@@ -32,6 +32,10 @@ def reconstruction_loss(pred, target):
     return inside + outside
 
 
+def patch_mean(values, weights):
+    return (values * weights).sum() / weights.sum().clamp(min=1)
+
+
 @torch.no_grad()
 def predict(generator, inputs, device, batch_size=100):
     """Images (N, H, W, 3) as float arrays in [0, 1]."""
@@ -49,6 +53,8 @@ def train(generator, discriminator, train_inputs, train_images, tune_inputs, tun
     """With adversarial = 0, the discriminator does not train and the generator gets only the L1 loss."""
     opt_g = torch.optim.Adam(generator.parameters(), lr=lr, betas=(0.5, 0.999))
     opt_d = torch.optim.Adam(discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
+    # A cosine decay of the learning rate to 0 at the last step.
+    schedulers = [torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=steps) for opt in (opt_g, opt_d)]
     # The mean of the weights over the last steps gives smoother images than the last weights of a GAN.
     ema = copy.deepcopy(generator).eval().requires_grad_(False)
     train_inputs, train_images = train_inputs.to(device), train_images.to(device)
@@ -73,14 +79,18 @@ def train(generator, discriminator, train_inputs, train_images, tune_inputs, tun
         if adversarial > 0:
             with autocast():
                 # Least-squares GAN loss: it is more stable than the cross entropy for a small data set.
-                loss_d = (((discriminator(targets, inputs) - 1) ** 2).mean()
-                          + (discriminator(fakes.detach().clamp(0, 1), inputs) ** 2).mean())
+                real = discriminator(targets, inputs)
+                fake = discriminator(fakes.detach().clamp(0, 1), inputs)
+                # Only the patches with the sphere count. Background patches are equal in real and fake images,
+                # and with a plain mean the discriminator gives 0.5 everywhere and teaches nothing.
+                weights = F.adaptive_max_pool2d(sphere_region(targets), real.shape[-2:])
+                loss_d = patch_mean((real.float() - 1) ** 2, weights) + patch_mean(fake.float() ** 2, weights)
             opt_d.zero_grad()
             scaler_d.scale(loss_d).backward()
             scaler_d.step(opt_d)
             scaler_d.update()
             with autocast():
-                loss_adv = ((discriminator(fakes.clamp(0, 1), inputs) - 1) ** 2).mean()
+                loss_adv = patch_mean((discriminator(fakes.clamp(0, 1), inputs).float() - 1) ** 2, weights)
         else:
             loss_d = loss_adv = torch.zeros((), device=device)
         loss_rec = reconstruction_loss(fakes.float(), targets)
@@ -91,6 +101,8 @@ def train(generator, discriminator, train_inputs, train_images, tune_inputs, tun
         scaler_g.scale(loss_g).backward()
         scaler_g.step(opt_g)
         scaler_g.update()
+        for scheduler in schedulers:
+            scheduler.step()
         # A smaller decay at the start, else the mean keeps the random weights of the start for a long time.
         decay = min(ema_decay, (1 + step) / (10 + step))
         with torch.no_grad():

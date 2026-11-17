@@ -24,7 +24,7 @@ print("commit", subprocess.run(["git", "-C", CLONE, "rev-parse", "HEAD"], captur
 sys.path.insert(0, f"{CLONE}/{PROJECT}")
 
 from data import N_IMAGES, N_TEST
-from metrics import METRICS, evaluate
+from metrics import METRICS, change_test, evaluate
 from training import crop
 
 inputs = Path("/kaggle/input")
@@ -50,12 +50,20 @@ for i in range(N_IMAGES):
         network.append(pair[:, 128:] / 255.0)
 print(f"Phong images equal to the data set: {same} of {N_IMAGES}", flush=True)
 
+change_test(phong).to_csv(OUT / "change-test.csv")
 scores = evaluate(network, phong)
 scores.insert(0, "index", np.arange(N_IMAGES - N_TEST, N_IMAGES))
 scores.to_csv(OUT / "scores.csv", index=False)
+# The same metrics on a 64x64 crop around the sphere. Most pixels of a full image are background.
+centers = [np.argwhere(p.max(2) > 0).mean(0) for p in phong]
+crop_scores = evaluate([crop(n, c, 64) for n, c in zip(network, centers)], [crop(p, c, 64) for p, c in zip(phong, centers)])
+crop_scores.insert(0, "index", scores["index"])
+crop_scores.to_csv(OUT / "scores-crop.csv", index=False)
 # The renderer runs the generator on the CPU, the training on the GPU. The difference must be small.
 difference = np.abs(np.stack(network) * 255 - predictions["preds"]).max()
-summary = {"codename": CODENAME, **scores[METRICS].mean().round(5).to_dict(), "phong_equal_to_data_set": int(same),
+summary = {"codename": CODENAME, **scores[METRICS].mean().round(5).to_dict(),
+           **{f"{k} (crop)": v for k, v in crop_scores[METRICS].mean().round(5).to_dict().items()},
+           "phong_equal_to_data_set": int(same),
            "max_difference_to_training_predictions": float(difference),
            "ms_per_image_cpu": float(log.split("network: ")[1].split(" ms")[0])}
 (OUT / "summary.json").write_text(json.dumps(summary, indent=2))
