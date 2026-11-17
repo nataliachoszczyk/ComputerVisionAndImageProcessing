@@ -117,42 +117,26 @@
   - The best images have no visible difference.
   - The worst images: the light is behind the sphere. The network draws the bright edge, but the edge is smooth and has a weak color. The edge of the reference has steps from the mesh.
 
-## State and next steps (2026-11-17)
+## State and next steps (2026-11-18)
 
 ### State
 
-- The branch `pro3` is on GitHub. It has the renderer changes, `data.py`, `metrics.py` and the job `data-v1`.
-- The data set is the output of the kernel `sigk-p3-data-v1` (`data-v1-set.zip`). There is no separate Kaggle dataset, because only one person does the work. A training job uses `"kernel_sources": ["nataliachoszczyk/sigk-p3-data-v1"]`.
-- To make the same data set locally (seed 0, 10 s), use this command in the root folder:
-
-  ```bash
-  .venv/Scripts/python 03-rendering/renderer/src/main.py --window headless --n_images 3000 --output_path <folder>
-  ```
-
-  On Kaggle, also use `--backend egl`.
+- `train-v1` (`gan-v1a` to `gan-v1d`) and `train-v2ab` (`gan-v2a`, `gan-v2b`) run on Kaggle.
+- `train-v1ef` is complete. Its results are in `results/gan-v1e/` and `results/gan-v1f/`.
+- The renderer can show the network image next to the Phong image (`renderer/src/neural_window.py`). Start it with `--generator <path to generator.pt>`.
+- The job `render-v1` is ready. It needs the output of `train-v1`.
+- `metrics.py` has the functions for the notebook: `load_summaries`, `plot_histories`, `scores_by_size`, `metric_correlation`, `change_test`.
 
 ### Decisions
 
-- The model is a conditional GAN. Do a diffusion model only if time remains.
-- The results table has no baseline row.
-- The position ranges are the ranges of the task text. Two limits apply (answer to hint 2): the full sphere is in the view, and the light is not in the sphere.
-- Most spheres are small (median diameter approximately 10 px).
-
-### Plan of the GAN
-
-- `model.py`:
-  - The generator changes the 11 features to an image. It starts from a 4x4 map and doubles the size to 128x128.
-  - Each block of the generator gets two coordinate channels (CoordConv), because the sphere position must be exact.
-  - The discriminator is a conditional PatchGAN. It gets the image and the 11 features as constant channels.
-- `training.py`: the GAN loss plus an L1 loss (as in pix2pix). Save the weights and calculate the metrics on the 600 test images.
-- Estimate for the full training on a T4: 20-40 min (approximately 15000 steps, batch size 32).
+- The model is a conditional GAN. The main model uses the GAN weight 5, the features and the relative coordinates.
+- The user writes `SUMMARY.md`.
+- The data set is the output of the kernel `sigk-p3-data-v1`. A training job uses `"kernel_sources": ["nataliachoszczyk/sigk-p3-data-v1"]`.
 
 ### Next steps
 
-1. Write `model.py` and `training.py`. Do a short test on the CPU.
-2. Do a smoke job on the Kaggle GPU. Measure the speed.
-3. Do the full training on Kaggle. Look at the images and the metrics. Change the model if necessary.
-4. Connect the network to the renderer: for the same scene, show the Phong image and the network image side by side.
-5. Calculate the metrics on the test set. Show good and bad cases and the FLIP error maps in `experiments.ipynb`.
-6. The user writes `SUMMARY.md`. Do not write it.
-7. At the end, merge `pro3` into `main` and change the README files.
+1. When `train-v1` is complete, download the small files into `results/` (`summary.json`, `history.csv`, `scores.csv`, `examples.png`, `history.png`). Write the results in the table of jobs.
+2. Start `render-v1`. If `gan-v2a` is better than `gan-v1a`, make `render-v2` with `gan-v2a`.
+3. Download the results of `train-v2ab` and `render-v1`.
+4. Write `experiments.ipynb`: the results table, the learning curves, the test images, the network in the renderer, and the analysis of the metrics (change test, crop scores, sphere size, correlation, seed noise `gan-v1a` against `gan-v1f`).
+5. At the end, merge `pro3` into `main` and change the README files (after the approval of the user).
