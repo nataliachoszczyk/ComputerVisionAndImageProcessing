@@ -63,8 +63,9 @@ class Generator(nn.Module):
             if index:
                 h = F.interpolate(h, scale_factor=2, mode="bilinear", align_corners=False)
             h = block(torch.cat([h, condition_maps(inputs, h.shape[-1], self.relative)], 1))
-        # A sigmoid gives an exact black background without a clamp.
-        return torch.sigmoid(self.to_rgb(h))
+        # No sigmoid: a saturated sigmoid stops the gradient, and the training stays at a black image.
+        out = self.to_rgb(h)
+        return out if self.training else out.clamp(0, 1)
 
 
 class Discriminator(nn.Module):

@@ -53,6 +53,10 @@ def train(generator, discriminator, train_inputs, train_images, tune_inputs, tun
     ema = copy.deepcopy(generator).eval().requires_grad_(False)
     train_inputs, train_images = train_inputs.to(device), train_images.to(device)
     tune_targets = to_numpy(tune_images)
+    use_amp = device.startswith("cuda")
+    scaler_g = torch.amp.GradScaler("cuda", enabled=use_amp)
+    scaler_d = torch.amp.GradScaler("cuda", enabled=use_amp)
+    autocast = lambda: torch.autocast(device_type="cuda", dtype=torch.float16, enabled=use_amp)
 
     start = time.time()
     history = []
@@ -63,27 +67,35 @@ def train(generator, discriminator, train_inputs, train_images, tune_inputs, tun
         generator.train()
         index = torch.randint(len(train_inputs), (batch_size,), device=device)
         inputs, targets = train_inputs[index], train_images[index].float() / 255.0
-        fakes = generator(inputs)
+        with autocast():
+            fakes = generator(inputs)
 
         if adversarial > 0:
-            # Least-squares GAN loss: it is more stable than the cross entropy for a small data set.
-            loss_d = ((discriminator(targets, inputs) - 1) ** 2).mean() + (discriminator(fakes.detach(), inputs) ** 2).mean()
+            with autocast():
+                # Least-squares GAN loss: it is more stable than the cross entropy for a small data set.
+                loss_d = (((discriminator(targets, inputs) - 1) ** 2).mean()
+                          + (discriminator(fakes.detach().clamp(0, 1), inputs) ** 2).mean())
             opt_d.zero_grad()
-            loss_d.backward()
-            opt_d.step()
-            loss_adv = ((discriminator(fakes, inputs) - 1) ** 2).mean()
+            scaler_d.scale(loss_d).backward()
+            scaler_d.step(opt_d)
+            scaler_d.update()
+            with autocast():
+                loss_adv = ((discriminator(fakes.clamp(0, 1), inputs) - 1) ** 2).mean()
         else:
             loss_d = loss_adv = torch.zeros((), device=device)
-        loss_rec = reconstruction_loss(fakes, targets)
-        loss_g = adversarial * loss_adv + l1_weight * loss_rec
+        loss_rec = reconstruction_loss(fakes.float(), targets)
+        loss_g = adversarial * loss_adv.float() + l1_weight * loss_rec
         if not torch.isfinite(loss_g):
             raise RuntimeError(f"The loss is not finite at step {step}.")
         opt_g.zero_grad()
-        loss_g.backward()
-        opt_g.step()
+        scaler_g.scale(loss_g).backward()
+        scaler_g.step(opt_g)
+        scaler_g.update()
+        # A smaller decay at the start, else the mean keeps the random weights of the start for a long time.
+        decay = min(ema_decay, (1 + step) / (10 + step))
         with torch.no_grad():
             for p_ema, p in zip(ema.parameters(), generator.parameters()):
-                p_ema.lerp_(p, 1 - ema_decay)
+                p_ema.lerp_(p, 1 - decay)
 
         for name, value in (("loss_d", loss_d), ("loss_adv", loss_adv), ("loss_rec", loss_rec)):
             totals[name] += value.item()
@@ -162,6 +174,7 @@ def run_experiment(codename, source, out_root, device, input_kind="features", re
     if device.startswith("cuda"):
         torch.cuda.set_device(device)
     torch.manual_seed(seed)
+    torch.backends.cudnn.benchmark = True
 
     params, images = load_split(source, "train")
     # The last train images are a tune set for the selection of the checkpoint. The test set is only for the scores.

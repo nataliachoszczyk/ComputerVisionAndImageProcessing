@@ -6,7 +6,8 @@
 |---|---|---|---|---|
 | 2026-11-17 | gl-smoke | [sigk-p3-gl-smoke](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-gl-smoke) | Test OpenGL without a display (CPU). Result: the default backend fails (no X display). The `egl` backend works with Mesa llvmpipe, without apt. 3000 frames of 128x128 in 0.78 s. The headless window of `moderngl_window` also works. | complete |
 | 2026-11-17 | data-v1 | [sigk-p3-data-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-data-v1) | Render 3000 images of 128x128 with seed 0 (CPU, EGL). Result: `data-v1-set.zip` with the images and `params.csv`, 2400 train and 600 test images. Rendering takes 10 s, the full job 24 s. | complete |
-| 2026-11-17 | train-smoke | [sigk-p3-train-smoke](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-smoke) | All steps of the four variants (`smoke-a` to `smoke-d`) with 300 steps each. Measure the speed. | running |
+| 2026-11-17 | train-smoke | [sigk-p3-train-smoke](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-smoke) | All steps of the four variants (`smoke-a` to `smoke-d`) with 300 steps each. Measure the speed. Result: all steps work. The four variants have the same L1 loss (0.0975) after 300 steps: the generator gives a black image. The sigmoid output saturates and stops the gradient. A GAN step takes 0.19 s (30000 steps: 1.6 h). | complete |
+| 2026-11-17 | train-smoke2 | [sigk-p3-train-smoke2](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-smoke2) | The four variants (`smoke2-a` to `smoke2-d`) with 3000 steps, after the changes below. Does the generator leave the black image? Speed with AMP. | running |
 
 ## Log
 
@@ -77,6 +78,19 @@
   - `c`: raw parameters, no relative coordinates (hint 1),
   - `d`: features, no relative coordinates.
 - Add the job `train-smoke`.
+- Change `PhongWindow`: the methods `draw_scene` and `read_image` hold the drawing and the reading of one scene. The data generation does not change.
+- Add `renderer/src/neural_window.py` (answer to "the network must be connected to the renderer"):
+  - The window samples a scene. It shows the Phong image (left) and the image of the generator (right) for the same scene.
+  - `main.py` starts this window when the command has `--generator <path>`.
+  - With `--output_path`, the window saves the pairs (`compare_NNNN.png`) and `params.csv`.
+  - With `--scene_seconds`, a visible window keeps each scene for some seconds.
+- Local test with random weights (5 frames, headless): the window image is equal to the saved pair. The scene 0 is equal to the scene 0 of `data-v1`.
+- Add the job `render-v1` (not started). It runs the renderer with the generator for the 3000 scenes (seed 0), and scores the 600 test scenes.
+- Changes after `train-smoke`:
+  - The generator has a linear output in the training. In the evaluation, it clamps the output to [0, 1].
+  - Mixed precision (AMP) for the speed.
+  - The EMA decay is small at the start, so the EMA generator is not the random start generator.
+- Add the job `train-smoke2`.
 
 ## State and next steps (2026-11-17)
 
@@ -115,5 +129,5 @@
 3. Do the full training on Kaggle. Look at the images and the metrics. Change the model if necessary.
 4. Connect the network to the renderer: for the same scene, show the Phong image and the network image side by side.
 5. Calculate the metrics on the test set. Show good and bad cases and the FLIP error maps in `experiments.ipynb`.
-6. Write `SUMMARY.md` in Polish. Use the metrics test above for the question about the metrics.
+6. The user writes `SUMMARY.md`. Do not write it.
 7. At the end, merge `pro3` into `main` and change the README files.
