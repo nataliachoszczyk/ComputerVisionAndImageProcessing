@@ -11,6 +11,7 @@
 | 2026-11-17 | train-smoke3 | [sigk-p3-train-smoke3](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-smoke3) | The GAN loss only on the sphere patches. 3000 steps with the GAN weight 1 (`smoke3-a`) and 5 (`smoke3-e`). Result: the discriminator learns (`loss_d` 0.25-0.32). Tune scores after 3000 steps: weight 1: FLIP 0.0066, LPIPS 0.0135, Hausdorff 4.4; weight 5: FLIP 0.0073, LPIPS 0.0122, Hausdorff 2.5. Only L1 (`smoke2-b`): FLIP 0.0047, LPIPS 0.0171, Hausdorff 5.1. | complete |
 | 2026-11-17 | train-v1 | [sigk-p3-train-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v1) | Full training, 40000 steps: `gan-v1a` (GAN weight 5, main), `gan-v1b` (only L1), `gan-v1c` (raw parameters), `gan-v1d` (no relative coordinates). | running |
 | 2026-11-17 | train-v1ef | [sigk-p3-train-v1ef](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v1ef) | Full training, 40000 steps: `gan-v1e` (GAN weight 1), `gan-v1f` (`gan-v1a` with seed 1). Result (600 test images): `gan-v1e` FLIP 0.00136, LPIPS 0.00134, SSIM 0.99934, Hausdorff 1.58; `gan-v1f` FLIP 0.00131, LPIPS 0.00103, SSIM 0.99936, Hausdorff 1.50. The best checkpoint is the last step. 72 min for each run. | complete |
+| 2026-11-18 | train-v2ab | [sigk-p3-train-v2ab](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v2ab) | `gan-v2a`: the main model with 100000 steps. `gan-v2b`: the main model without the mirror augmentation (40000 steps). | running |
 
 ## Log
 
