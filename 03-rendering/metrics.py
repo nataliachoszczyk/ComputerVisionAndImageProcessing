@@ -2,8 +2,12 @@
 
 All functions take RGB images as float arrays of shape (H, W, 3) with values in [0, 1].
 """
+import json
+from pathlib import Path
+
 import cv2
 import lpips
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
@@ -80,3 +84,47 @@ def change_test(targets):
     """Mean metrics of simple changes of the reference images. It shows which errors each metric sees."""
     return pd.DataFrame({name: evaluate([change(t) for t in targets], targets).mean()
                          for name, change in CHANGES.items()}).T
+
+
+def load_summaries(results_dir, codenames):
+    """One row for each experiment with the mean test metrics and the settings."""
+    rows = [json.loads((Path(results_dir) / codename / "summary.json").read_text()) for codename in codenames]
+    return pd.DataFrame(rows).set_index("codename")
+
+
+def plot_histories(results_dir, labels):
+    """The tune metrics during the training. labels maps a codename to its name in the legend."""
+    fig, axes = plt.subplots(1, len(METRICS), figsize=(4 * len(METRICS), 3.2))
+    for codename, label in labels.items():
+        history = pd.read_csv(Path(results_dir) / codename / "history.csv")
+        for ax, metric in zip(axes, METRICS):
+            ax.plot(history["step"], history[metric], linewidth=2, label=label)
+    for ax, metric in zip(axes, METRICS):
+        ax.set_title(f"Tune {metric}", loc="left", fontsize=10)
+        ax.set_xlabel("Step")
+        ax.spines[["top", "right"]].set_visible(False)
+    axes[0].legend(fontsize=8, frameon=False)
+    fig.tight_layout()
+    return fig
+
+
+def sphere_diameter(params):
+    """The diameter of the sphere in the image (pixels), from the scene parameters."""
+    from data import features
+    return 2 * np.exp(features(params)[:, 2] - 2) * 64
+
+
+def scores_by_size(scores, params, bins=(6, 8, 10, 13, 20, 128)):
+    """Mean metrics for groups of test images with a similar sphere size."""
+    diameter = pd.Series(sphere_diameter(params.set_index("index").loc[scores["index"]].reset_index()),
+                         index=scores.index)
+    groups = pd.cut(diameter, bins, right=False).rename("diameter (px)")
+    table = scores[METRICS].groupby(groups, observed=True).mean()
+    table.insert(0, "images", groups.value_counts().reindex(table.index))
+    return table
+
+
+def metric_correlation(scores):
+    """Rank correlation (Spearman) between the metrics over the test images. FLIP, LPIPS and Hausdorff are errors,
+    SSIM is a similarity, thus a good agreement gives a negative value with SSIM."""
+    return scores[METRICS].corr(method="spearman")
