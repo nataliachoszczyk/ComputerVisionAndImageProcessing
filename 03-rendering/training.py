@@ -177,7 +177,7 @@ def plot_examples(preds, targets, scores, codename, path):
     plt.close(fig)
 
 
-def run_experiment(codename, source, out_root, device, input_kind="features", relative=True, adversarial=1.0,
+def run_experiment(codename, source, out_root, device, input_kind="features", relative=True, adversarial=5.0,
                    steps=30000, batch_size=32, lr=2e-4, l1_weight=100.0, eval_every=2000, ema_decay=0.999,
                    n_tune=200, mirror=True, deadline_hours=3.0, limit=None, seed=0):
     """Train one variant and write its results into out_root/codename. limit makes a small smoke test."""

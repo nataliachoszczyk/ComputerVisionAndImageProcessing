@@ -8,7 +8,9 @@
 | 2026-11-17 | data-v1 | [sigk-p3-data-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-data-v1) | Render 3000 images of 128x128 with seed 0 (CPU, EGL). Result: `data-v1-set.zip` with the images and `params.csv`, 2400 train and 600 test images. Rendering takes 10 s, the full job 24 s. | complete |
 | 2026-11-17 | train-smoke | [sigk-p3-train-smoke](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-smoke) | All steps of the four variants (`smoke-a` to `smoke-d`) with 300 steps each. Measure the speed. Result: all steps work. The four variants have the same L1 loss (0.0975) after 300 steps: the generator gives a black image. The sigmoid output saturates and stops the gradient. A GAN step takes 0.19 s (30000 steps: 1.6 h). | complete |
 | 2026-11-17 | train-smoke2 | [sigk-p3-train-smoke2](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-smoke2) | The four variants (`smoke2-a` to `smoke2-d`) with 3000 steps, after the changes below. Does the generator leave the black image? Speed with AMP. Result: `a` and `b` learn (tune LPIPS 0.017, Hausdorff 5). `c` and `d` stay at a black image after 3000 steps. A GAN step takes 0.1 s, an L1 step 0.07 s. The discriminator gives 0.5 everywhere (`loss_d` 0.50, `loss_adv` 0.25), thus `a` is equal to `b`. | complete |
-| 2026-11-17 | train-smoke3 | [sigk-p3-train-smoke3](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-smoke3) | The GAN loss only on the sphere patches. 3000 steps with the GAN weight 1 (`smoke3-a`) and 5 (`smoke3-e`). | running |
+| 2026-11-17 | train-smoke3 | [sigk-p3-train-smoke3](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-smoke3) | The GAN loss only on the sphere patches. 3000 steps with the GAN weight 1 (`smoke3-a`) and 5 (`smoke3-e`). Result: the discriminator learns (`loss_d` 0.25-0.32). Tune scores after 3000 steps: weight 1: FLIP 0.0066, LPIPS 0.0135, Hausdorff 4.4; weight 5: FLIP 0.0073, LPIPS 0.0122, Hausdorff 2.5. Only L1 (`smoke2-b`): FLIP 0.0047, LPIPS 0.0171, Hausdorff 5.1. | complete |
+| 2026-11-17 | train-v1 | [sigk-p3-train-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v1) | Full training, 40000 steps: `gan-v1a` (GAN weight 5, main), `gan-v1b` (only L1), `gan-v1c` (raw parameters), `gan-v1d` (no relative coordinates). | running |
+| 2026-11-17 | train-v1ef | [sigk-p3-train-v1ef](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v1ef) | Full training, 40000 steps: `gan-v1e` (GAN weight 1), `gan-v1f` (`gan-v1a` with seed 1). | running |
 
 ## Log
 
@@ -100,6 +102,11 @@
   - The GAN loss uses only the 16x16 patches that touch the sphere region. Background patches are equal in real and fake images.
   - A cosine decay of the learning rate to 0.
 - Add the job `train-smoke3`.
+- Results of `train-smoke3`:
+  - The GAN gives sharper shapes and highlights than only L1. LPIPS and Hausdorff are better, FLIP and SSIM are worse. The metrics do not agree.
+  - Bad cases: the light is behind the sphere. The reference has a bright edge around the sphere. The GAN draws a bright spot instead.
+- Decision: the main model uses the GAN weight 5 (best LPIPS and Hausdorff). The weight 1 is the variant `gan-v1e`.
+- Add the jobs `train-v1` and `train-v1ef`.
 
 ## State and next steps (2026-11-17)
 
