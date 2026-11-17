@@ -5,6 +5,7 @@
 | Date | Job | Link | Comment | Status |
 |---|---|---|---|---|
 | 2026-11-17 | gl-smoke | [sigk-p3-gl-smoke](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-gl-smoke) | Test OpenGL without a display (CPU). Result: the default backend fails (no X display). The `egl` backend works with Mesa llvmpipe, without apt. 3000 frames of 128x128 in 0.78 s. The headless window of `moderngl_window` also works. | complete |
+| 2026-11-17 | data-v1 | [sigk-p3-data-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-data-v1) | Render 3000 images of 128x128 with seed 0 (CPU, EGL). Result: `data-v1-set.zip` with the images and `params.csv`, 2400 train and 600 test images. Rendering takes 10 s, the full job 24 s. | complete |
 
 ## Log
 
@@ -26,3 +27,4 @@
   - The ambient colors in `phong.frag` are the values of the task text (76/255 and 25/255).
 - Do a local test with 3000 images (10 s). The sphere center agrees with the parameters. No sphere touches the image border.
 - Add the job `data-v1`.
+- Add the results of `data-v1` in `results/data-v1/`: the parameters and a preview of 32 images.
