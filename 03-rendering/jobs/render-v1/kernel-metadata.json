@@ -9,5 +9,5 @@
   "enable_internet": true,
   "dataset_sources": [],
   "competition_sources": [],
-  "kernel_sources": ["nataliachoszczyk/sigk-p3-data-v1", "nataliachoszczyk/sigk-p3-train-v1"]
+  "kernel_sources": ["nataliachoszczyk/sigk-p3-data-v1", "nataliachoszczyk/sigk-p3-train-v2ab"]
 }

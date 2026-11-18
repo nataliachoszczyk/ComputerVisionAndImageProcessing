@@ -10,6 +10,7 @@
 | 2026-11-17 | train-v1ef | [sigk-p3-train-v1ef](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v1ef) | Full training, 40000 steps: `gan-v1e` (GAN weight 1), `gan-v1f` (`gan-v1a` with seed 1). Result (600 test images): `gan-v1e` FLIP 0.00136, LPIPS 0.00134, SSIM 0.99934, Hausdorff 1.58; `gan-v1f` FLIP 0.00131, LPIPS 0.00103, SSIM 0.99936, Hausdorff 1.50. The best checkpoint is the last step. 72 min for each run. | complete |
 | 2026-11-18 | train-v2ab | [sigk-p3-train-v2ab](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v2ab) | `gan-v2a`: the main model with 100000 steps. `gan-v2b`: the main model without the mirror augmentation (40000 steps). Result: `gan-v2a` 0.00115 / 0.00099 / 0.99949 / 1.50 (best checkpoint at step 80000, 168 min); `gan-v2b` 0.00204 / 0.00234 / 0.99881 / 2.32. | complete |
 | 2026-11-18 | train-v3ab | [sigk-p3-train-v3ab](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v3ab) | 100000 steps, as `gan-v2a`: `gan-v3a` (only L1), `gan-v3b` (`gan-v2a` with seed 1). | running |
+| 2026-11-18 | render-v1 | [sigk-p3-render-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-render-v1) | The renderer with the generator of `gan-v2a` for the 3000 scenes (seed 0, CPU, EGL). Check that the Phong images are equal to `data-v1`. Score the 600 test scenes on the full image and on a 64x64 crop. Change test of the metrics. | running |
 
 ## Log
 

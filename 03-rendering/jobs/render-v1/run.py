@@ -12,7 +12,7 @@ REPO = "https://github.com/nataliachoszczyk/ComputerVisionAndImageProcessing.git
 BRANCH = "pro3"
 PROJECT = "03-rendering"
 CLONE = "/tmp/repo"  # Not in the output folder, so the clone is not an output.
-CODENAME = "gan-v1a"
+CODENAME = "gan-v2a"
 PAIRS = Path("/kaggle/temp/render-v1")
 OUT = Path("/kaggle/working/render-v1")
 
