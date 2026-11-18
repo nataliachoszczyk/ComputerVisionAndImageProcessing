@@ -1,0 +1,13 @@
+{
+  "id": "nataliachoszczyk/sigk-p3-figures-v2",
+  "title": "sigk-p3-figures-v2",
+  "code_file": "run.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": true,
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": ["nataliachoszczyk/sigk-p3-data-v1", "nataliachoszczyk/sigk-p3-train-v2ab"]
+}

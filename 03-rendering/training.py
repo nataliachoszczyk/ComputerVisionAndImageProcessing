@@ -184,7 +184,14 @@ def plot_grid(rows, titles, labels, boxes=None):
     return fig
 
 
-def plot_examples(preds, targets, scores, size=40):
+def zoom_size(image, minimum=40):
+    """An even crop size that holds the full sphere and a small margin."""
+    pixels = np.argwhere(image.max(2) > 0)
+    extent = int(np.ptp(pixels, axis=0).max()) + 1 + 8
+    return min(image.shape[0], max(minimum, extent + extent % 2))
+
+
+def plot_examples(preds, targets, scores):
     """Two best, two middle and two worst test images by LPIPS. scores has the same order as the images."""
     order = scores["LPIPS"].sort_values().index.to_numpy()
     middle = len(order) // 2
@@ -192,7 +199,7 @@ def plot_examples(preds, targets, scores, size=40):
     rows, labels, boxes = [], [], []
     for group, indices in picks.items():
         for i in indices:
-            center = sphere_center(targets[i])
+            center, size = sphere_center(targets[i]), zoom_size(targets[i])
             rows.append([targets[i], preds[i], crop(targets[i], center, size), crop(preds[i], center, size),
                          crop(flip_map(preds[i], targets[i]), center, size)])
             labels.append(f"{group}, scene {scores.loc[i, 'index']}\nLPIPS {scores.loc[i, 'LPIPS']:.4f}")
