@@ -9,7 +9,7 @@
 | 2026-11-17 | train-v1 | [sigk-p3-train-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v1) | Full training, 40000 steps: `gan-v1a` (GAN weight 5, main), `gan-v1b` (only L1), `gan-v1c` (raw parameters), `gan-v1d` (no relative coordinates). Result (600 test images, FLIP / LPIPS / SSIM / Hausdorff): `a` 0.00156 / 0.00117 / 0.99927 / 1.60; `b` 0.00131 / 0.00197 / 0.99940 / 2.09; `c` 0.00255 / 0.00393 / 0.99772 / 2.38; `d` 0.00186 / 0.00143 / 0.99905 / 1.65. | complete |
 | 2026-11-17 | train-v1ef | [sigk-p3-train-v1ef](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v1ef) | Full training, 40000 steps: `gan-v1e` (GAN weight 1), `gan-v1f` (`gan-v1a` with seed 1). Result (600 test images): `gan-v1e` FLIP 0.00136, LPIPS 0.00134, SSIM 0.99934, Hausdorff 1.58; `gan-v1f` FLIP 0.00131, LPIPS 0.00103, SSIM 0.99936, Hausdorff 1.50. The best checkpoint is the last step. 72 min for each run. | complete |
 | 2026-11-18 | train-v2ab | [sigk-p3-train-v2ab](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v2ab) | `gan-v2a`: the main model with 100000 steps. `gan-v2b`: the main model without the mirror augmentation (40000 steps). Result: `gan-v2a` 0.00115 / 0.00099 / 0.99949 / 1.50 (best checkpoint at step 80000, 168 min); `gan-v2b` 0.00204 / 0.00234 / 0.99881 / 2.32. | complete |
-| 2026-11-18 | train-v3ab | [sigk-p3-train-v3ab](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v3ab) | 100000 steps, as `gan-v2a`: `gan-v3a` (only L1), `gan-v3b` (`gan-v2a` with seed 1). | running |
+| 2026-11-18 | train-v3ab | [sigk-p3-train-v3ab](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v3ab) | 100000 steps, as `gan-v2a`: `gan-v3a` (only L1), `gan-v3b` (`gan-v2a` with seed 1). Result: `gan-v3a` 0.00118 / 0.00156 / 0.99944 / 1.80 (best step 100000, 116 min); `gan-v3b` 0.00142 / 0.00109 / 0.99930 / 1.59 (best step 65000, 173 min). | complete |
 | 2026-11-18 | render-v1 | [sigk-p3-render-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-render-v1) | The renderer with the generator of `gan-v2a` for the 3000 scenes (seed 0, CPU, EGL). Check that the Phong images are equal to `data-v1`. Score the 600 test scenes on the full image and on a 64x64 crop. Change test of the metrics. Result: all 3000 Phong images are equal to `data-v1`. The network image differs from the training predictions by 1/255 or less. Full image: FLIP 0.00074, LPIPS 0.00099, SSIM 0.99950, Hausdorff 1.50. Crop 64x64: FLIP 0.00295, LPIPS 0.00191, SSIM 0.99782, Hausdorff 1.50. The network takes 54 ms for one image on the CPU. | complete |
 
 ## Log
@@ -110,6 +110,11 @@
   - The training scores the float output of the network. The renderer saves 8-bit PNG images.
   - The rounding to 8 bits sets very small background values to 0. FLIP sees these values, the other metrics do not.
   - The row `neural_renderer` uses the scores of the renderer, because the renderer gives the final images.
+
+- Add the results of `train-v3ab` in `results/gan-v3a/` and `results/gan-v3b/`.
+  - With the same number of steps, the GAN (`gan-v2a`) is better than only L1 (`gan-v3a`) in all four metrics.
+  - The second seed (`gan-v3b`) is worse than `gan-v2a`. The random difference between seeds is approximately 0.0003 in FLIP and 0.0001 in LPIPS.
+  - `gan-v2a` stays the final model. Thus `render-v1` gives the row `neural_renderer`, and the job `render-v2` is not necessary.
 
 ## State and next steps (2026-11-18)
 
