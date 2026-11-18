@@ -9,9 +9,10 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
+from PIL import Image
 
 from data import INPUTS, augment, load_split
-from metrics import METRICS, evaluate, flip_map
+from metrics import METRICS, evaluate, flip_map, sphere_diameter
 from model import Discriminator, Generator, load_generator, save_generator
 
 LINE_COLOR = "#2a78d6"
@@ -146,35 +147,95 @@ def plot_history(history, codename, path):
     plt.close(fig)
 
 
+def crop_box(center, size, image_size=128):
+    """The top left corner (y, x) of a square crop around the sphere. The crop stays in the image."""
+    half = size // 2
+    return tuple(int(np.clip(c, half, image_size - half)) - half for c in center)
+
+
 def crop(image, center, size=40):
     """A square crop around the sphere, because most spheres are small."""
-    half = size // 2
-    y, x = (int(np.clip(c, half, image.shape[0] - half)) for c in center)
-    return image[y - half:y + half, x - half:x + half]
+    y, x = crop_box(center, size, image.shape[0])
+    return image[y:y + size, x:x + size]
 
 
-def plot_examples(preds, targets, scores, codename, path):
-    """Two best, four middle and two worst test images (LPIPS). Full images, then crops around the sphere."""
-    order = scores["LPIPS"].sort_values().index.to_numpy()
-    picks = [*order[:2], *order[np.linspace(0, len(order) - 1, 6).astype(int)[1:5]], *order[-2:]]
-    titles = ["Reference", "Network", "Reference (crop)", "Network (crop)", "FLIP error (crop)"]
-    fig, axes = plt.subplots(len(picks), len(titles), figsize=(2.2 * len(titles), 2.3 * len(picks)))
-    for row, i in zip(axes, picks):
-        center = np.argwhere(targets[i].max(2) > 0).mean(0)
-        panels = [targets[i], preds[i], crop(targets[i], center), crop(preds[i], center),
-                  crop(flip_map(preds[i], targets[i]), center)]
-        for ax, panel, title in zip(row, panels, titles):
+def sphere_center(image):
+    """The mean position of the sphere pixels. The ambient light makes all sphere pixels brighter than the background."""
+    return np.argwhere(image.max(2) > 0).mean(0)
+
+
+def plot_grid(rows, titles, labels, boxes=None):
+    """Show rows of image panels. boxes[r] = (y, x, size) draws the crop area on the first two panels of row r."""
+    fig, axes = plt.subplots(len(rows), len(titles), figsize=(2.1 * len(titles), 2.2 * len(rows)), squeeze=False)
+    for r, (panels, label) in enumerate(zip(rows, labels)):
+        for c, panel in enumerate(panels):
+            ax = axes[r, c]
             ax.imshow(np.clip(panel, 0, 1), interpolation="nearest")
             ax.set_xticks([])
             ax.set_yticks([])
-            if row is axes[0]:
-                ax.set_title(title, fontsize=9)
-        s = scores.loc[i]
-        row[0].set_ylabel(f"#{i}\nLPIPS {s['LPIPS']:.3f}\nHausdorff {s['Hausdorff']:.1f}", fontsize=8)
-    fig.suptitle(codename, x=0.01, ha="left", fontsize=10)
+            if r == 0:
+                ax.set_title(titles[c], fontsize=9)
+            if boxes is not None and c < 2:
+                y, x, size = boxes[r]
+                ax.add_patch(plt.Rectangle((x - 0.5, y - 0.5), size, size, fill=False, edgecolor="white",
+                                           linewidth=0.8, linestyle="--"))
+        axes[r, 0].set_ylabel(label, fontsize=8)
     fig.tight_layout()
-    fig.savefig(path, dpi=110, facecolor="white")
-    plt.close(fig)
+    return fig
+
+
+def plot_examples(preds, targets, scores, size=40):
+    """Two best, two middle and two worst test images by LPIPS. scores has the same order as the images."""
+    order = scores["LPIPS"].sort_values().index.to_numpy()
+    middle = len(order) // 2
+    picks = {"best": order[:2], "middle": order[middle:middle + 2], "worst": order[-2:]}
+    rows, labels, boxes = [], [], []
+    for group, indices in picks.items():
+        for i in indices:
+            center = sphere_center(targets[i])
+            rows.append([targets[i], preds[i], crop(targets[i], center, size), crop(preds[i], center, size),
+                         crop(flip_map(preds[i], targets[i]), center, size)])
+            labels.append(f"{group}, scene {scores.loc[i, 'index']}\nLPIPS {scores.loc[i, 'LPIPS']:.4f}")
+            boxes.append((*crop_box(center, size), size))
+    titles = ["Phong (reference)", "Network", "Phong, zoom", "Network, zoom", "FLIP error, zoom"]
+    return plot_grid(rows, titles, labels, boxes)
+
+
+def plot_render_pairs(preview_path, rows=4, first_scene=2400):
+    """The preview of the job render-v1: each row is Phong, network, Phong zoom and network zoom (4x, 32 x 32 px)."""
+    preview = np.asarray(Image.open(preview_path)) / 255.0
+    panels, labels, boxes = [], [], []
+    for r in range(rows):
+        phong, network, zoom_phong, zoom_network = (preview[128 * r:128 * (r + 1), 128 * c:128 * (c + 1)] for c in range(4))
+        # The difference is 10 times brighter, else it is not visible.
+        panels.append([phong, network, zoom_phong, zoom_network, np.abs(zoom_phong - zoom_network) * 10])
+        labels.append(f"scene {first_scene + r}")
+        boxes.append((*crop_box(sphere_center(phong), 32), 32))
+    titles = ["Phong (renderer)", "Network (renderer)", "Phong, zoom", "Network, zoom", "Difference x10, zoom"]
+    return plot_grid(panels, titles, labels, boxes)
+
+
+def plot_scenes(preview_path, params, n=8, size=32):
+    """The first n images of the data set (preview of the job data-v1) and a zoom of each sphere."""
+    preview = np.asarray(Image.open(preview_path)) / 255.0
+    images = [preview[128 * (i // 8):128 * (i // 8 + 1), 128 * (i % 8):128 * (i % 8 + 1)] for i in range(n)]
+    diameter = sphere_diameter(params.iloc[:n])
+    fig, axes = plt.subplots(2, n, figsize=(1.9 * n, 4.1))
+    for i, image in enumerate(images):
+        center = sphere_center(image)
+        y, x = crop_box(center, size)
+        axes[0, i].imshow(image, interpolation="nearest")
+        axes[0, i].add_patch(plt.Rectangle((x - 0.5, y - 0.5), size, size, fill=False, edgecolor="white",
+                                           linewidth=0.8, linestyle="--"))
+        axes[0, i].set_title(f"scene {i}\ndiameter {diameter[i]:.0f} px", fontsize=8)
+        axes[1, i].imshow(crop(image, center, size), interpolation="nearest")
+        for ax in axes[:, i]:
+            ax.set_xticks([])
+            ax.set_yticks([])
+    axes[0, 0].set_ylabel("full image", fontsize=8)
+    axes[1, 0].set_ylabel(f"zoom ({size} x {size} px)", fontsize=8)
+    fig.tight_layout()
+    return fig
 
 
 def run_experiment(codename, source, out_root, device, input_kind="features", relative=True, adversarial=5.0,
@@ -219,7 +280,9 @@ def run_experiment(codename, source, out_root, device, input_kind="features", re
     scores = evaluate(preds, targets)
     scores.insert(0, "index", test_params["index"].to_numpy())
     scores.to_csv(f"{out_dir}/scores.csv", index=False)
-    plot_examples(preds, targets, scores, codename, f"{out_dir}/examples.png")
+    fig = plot_examples(preds, targets, scores)
+    fig.savefig(f"{out_dir}/examples.png", dpi=110, facecolor="white")
+    plt.close(fig)
     # The predictions stay on Kaggle for a later analysis. They are too large for git.
     np.savez_compressed(f"{out_dir}/predictions.npz", preds=(preds * 255).round().astype(np.uint8),
                         index=test_params["index"].to_numpy())
