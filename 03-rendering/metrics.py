@@ -93,14 +93,19 @@ def load_summaries(results_dir, codenames):
 
 
 def plot_histories(results_dir, labels):
-    """The tune metrics during the training. labels maps a codename to its name in the legend."""
+    """The tune metrics during the training. labels maps a codename to its name in the legend.
+
+    The log scale shows the small differences at the end of the training, and SSIM becomes the error 1 - SSIM.
+    """
     fig, axes = plt.subplots(1, len(METRICS), figsize=(4 * len(METRICS), 3.2))
     for codename, label in labels.items():
         history = pd.read_csv(Path(results_dir) / codename / "history.csv")
+        history["SSIM"] = 1 - history["SSIM"]
         for ax, metric in zip(axes, METRICS):
             ax.plot(history["step"], history[metric], linewidth=2, label=label)
     for ax, metric in zip(axes, METRICS):
-        ax.set_title(f"Tune {metric}", loc="left", fontsize=10)
+        ax.set_yscale("log")
+        ax.set_title(f"Tune {'1 - SSIM' if metric == 'SSIM' else metric}", loc="left", fontsize=10)
         ax.set_xlabel("Step")
         ax.spines[["top", "right"]].set_visible(False)
     axes[0].legend(fontsize=8, frameon=False)

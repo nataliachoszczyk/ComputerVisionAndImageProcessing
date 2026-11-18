@@ -116,26 +116,24 @@
   - The second seed (`gan-v3b`) is worse than `gan-v2a`. The random difference between seeds is approximately 0.0003 in FLIP and 0.0001 in LPIPS.
   - `gan-v2a` stays the final model. Thus `render-v1` gives the row `neural_renderer`, and the job `render-v2` is not necessary.
 
+- Add `experiments.ipynb`. It shows the data, the row `neural_renderer`, the table of all variants, the learning curves, the test images, the network in the renderer and the analysis of the metrics.
+- Change `plot_histories` in `metrics.py`: a log scale, and 1 - SSIM instead of SSIM. On a linear scale, the early peaks hide the end of the training.
+
 ## State and next steps (2026-11-18)
 
 ### State
 
-- `train-v1` (`gan-v1a` to `gan-v1d`) and `train-v2ab` (`gan-v2a`, `gan-v2b`) run on Kaggle.
-- `train-v1ef` is complete. Its results are in `results/gan-v1e/` and `results/gan-v1f/`.
-- The renderer can show the network image next to the Phong image (`renderer/src/neural_window.py`). Start it with `--generator <path to generator.pt>`.
-- The job `render-v1` is ready. It needs the output of `train-v1`.
-- `metrics.py` has the functions for the notebook: `load_summaries`, `plot_histories`, `scores_by_size`, `metric_correlation`, `change_test`.
+- All training jobs and `render-v1` are complete. Their small results are in `results/`.
+- `gan-v2a` is the final model. `render-v1` gives the row `neural_renderer`: FLIP 0.00074, LPIPS 0.00099, SSIM 0.99950, Hausdorff 1.50.
+- `experiments.ipynb` shows all results and the answer to the question "Do all metrics show the quality well?".
 
 ### Decisions
 
-- The model is a conditional GAN. The main model uses the GAN weight 5, the features and the relative coordinates.
+- The model is a conditional GAN with the GAN weight 5, the features and the relative coordinates, 100000 steps.
 - The user writes `SUMMARY.md`.
-- The data set is the output of the kernel `sigk-p3-data-v1`. A training job uses `"kernel_sources": ["nataliachoszczyk/sigk-p3-data-v1"]`.
+- The data set is the output of the kernel `sigk-p3-data-v1`.
 
 ### Next steps
 
-1. When `train-v1` is complete, download the small files into `results/` (`summary.json`, `history.csv`, `scores.csv`, `examples.png`, `history.png`). Write the results in the table of jobs.
-2. Start `render-v1`. If `gan-v2a` is better than `gan-v1a`, make `render-v2` with `gan-v2a`.
-3. Download the results of `train-v2ab` and `render-v1`.
-4. Write `experiments.ipynb`: the results table, the learning curves, the test images, the network in the renderer, and the analysis of the metrics (change test, crop scores, sphere size, correlation, seed noise `gan-v1a` against `gan-v1f`).
-5. At the end, merge `pro3` into `main` and change the README files (after the approval of the user).
+1. The user writes `SUMMARY.md`.
+2. At the end, merge `pro3` into `main` and change the README files (after the approval of the user).
