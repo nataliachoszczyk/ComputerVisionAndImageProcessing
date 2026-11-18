@@ -6,12 +6,9 @@
 |---|---|---|---|---|
 | 2026-11-17 | gl-smoke | [sigk-p3-gl-smoke](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-gl-smoke) | Test OpenGL without a display (CPU). Result: the default backend fails (no X display). The `egl` backend works with Mesa llvmpipe, without apt. 3000 frames of 128x128 in 0.78 s. The headless window of `moderngl_window` also works. | complete |
 | 2026-11-17 | data-v1 | [sigk-p3-data-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-data-v1) | Render 3000 images of 128x128 with seed 0 (CPU, EGL). Result: `data-v1-set.zip` with the images and `params.csv`, 2400 train and 600 test images. Rendering takes 10 s, the full job 24 s. | complete |
-| 2026-11-17 | train-smoke | [sigk-p3-train-smoke](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-smoke) | All steps of the four variants (`smoke-a` to `smoke-d`) with 300 steps each. Measure the speed. Result: all steps work. The four variants have the same L1 loss (0.0975) after 300 steps: the generator gives a black image. The sigmoid output saturates and stops the gradient. A GAN step takes 0.19 s (30000 steps: 1.6 h). | complete |
-| 2026-11-17 | train-smoke2 | [sigk-p3-train-smoke2](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-smoke2) | The four variants (`smoke2-a` to `smoke2-d`) with 3000 steps, after the changes below. Does the generator leave the black image? Speed with AMP. Result: `a` and `b` learn (tune LPIPS 0.017, Hausdorff 5). `c` and `d` stay at a black image after 3000 steps. A GAN step takes 0.1 s, an L1 step 0.07 s. The discriminator gives 0.5 everywhere (`loss_d` 0.50, `loss_adv` 0.25), thus `a` is equal to `b`. | complete |
-| 2026-11-17 | train-smoke3 | [sigk-p3-train-smoke3](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-smoke3) | The GAN loss only on the sphere patches. 3000 steps with the GAN weight 1 (`smoke3-a`) and 5 (`smoke3-e`). Result: the discriminator learns (`loss_d` 0.25-0.32). Tune scores after 3000 steps: weight 1: FLIP 0.0066, LPIPS 0.0135, Hausdorff 4.4; weight 5: FLIP 0.0073, LPIPS 0.0122, Hausdorff 2.5. Only L1 (`smoke2-b`): FLIP 0.0047, LPIPS 0.0171, Hausdorff 5.1. | complete |
-| 2026-11-17 | train-v1 | [sigk-p3-train-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v1) | Full training, 40000 steps: `gan-v1a` (GAN weight 5, main), `gan-v1b` (only L1), `gan-v1c` (raw parameters), `gan-v1d` (no relative coordinates). | running |
+| 2026-11-17 | train-v1 | [sigk-p3-train-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v1) | Full training, 40000 steps: `gan-v1a` (GAN weight 5, main), `gan-v1b` (only L1), `gan-v1c` (raw parameters), `gan-v1d` (no relative coordinates). Result (600 test images, FLIP / LPIPS / SSIM / Hausdorff): `a` 0.00156 / 0.00117 / 0.99927 / 1.60; `b` 0.00131 / 0.00197 / 0.99940 / 2.09; `c` 0.00255 / 0.00393 / 0.99772 / 2.38; `d` 0.00186 / 0.00143 / 0.99905 / 1.65. | complete |
 | 2026-11-17 | train-v1ef | [sigk-p3-train-v1ef](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v1ef) | Full training, 40000 steps: `gan-v1e` (GAN weight 1), `gan-v1f` (`gan-v1a` with seed 1). Result (600 test images): `gan-v1e` FLIP 0.00136, LPIPS 0.00134, SSIM 0.99934, Hausdorff 1.58; `gan-v1f` FLIP 0.00131, LPIPS 0.00103, SSIM 0.99936, Hausdorff 1.50. The best checkpoint is the last step. 72 min for each run. | complete |
-| 2026-11-18 | train-v2ab | [sigk-p3-train-v2ab](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v2ab) | `gan-v2a`: the main model with 100000 steps. `gan-v2b`: the main model without the mirror augmentation (40000 steps). | running |
+| 2026-11-18 | train-v2ab | [sigk-p3-train-v2ab](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v2ab) | `gan-v2a`: the main model with 100000 steps. `gan-v2b`: the main model without the mirror augmentation (40000 steps). Result: `gan-v2a` 0.00115 / 0.00099 / 0.99949 / 1.50 (best checkpoint at step 80000, 168 min); `gan-v2b` 0.00204 / 0.00234 / 0.99881 / 2.32. | complete |
 
 ## Log
 
@@ -68,20 +65,16 @@
 - Change `load_split`. It returns the parameters and the uint8 images, so the training can make the inputs of each variant.
 - Add `model.py`:
   - The generator starts from a 4x4 map. Each block gets the inputs as constant channels, the pixel coordinates and the coordinates relative to the sphere.
-  - The output has a sigmoid, so the background can be exact black. A noisy background gives false Canny edges.
+  - The generator has a linear output in the training. A sigmoid output saturates at black and stops the gradient. In the evaluation, the output is clamped to [0, 1].
   - The discriminator is a conditional PatchGAN with spectral normalization (16x16 patches).
 - Add `training.py`:
   - The L1 loss gives the same weight to the sphere region and to the background. Most pixels are background.
-  - The GAN loss is least squares. The generator for the scores is the mean of the weights (EMA, decay 0.999).
+  - The GAN loss is least squares. It uses only the patches that touch the sphere region. Background patches are equal in real and fake images, and without this limit the discriminator gives 0.5 everywhere.
+  - Mixed precision (AMP), Adam with a cosine decay of the learning rate to 0.
+  - The generator for the scores is the mean of the weights (EMA, decay 0.999, smaller at the start).
   - The last 200 train images are the tune set. The checkpoint with the best tune LPIPS is kept.
   - At the end: the scores on the 600 test images, a figure with examples and FLIP error maps, and the time of one image.
 - Add `flip_map` to `metrics.py` for the figures.
-- Plan of the experiments (one change for each variant):
-  - `a`: GAN + L1, features, relative coordinates (main model),
-  - `b`: only L1, no GAN,
-  - `c`: raw parameters, no relative coordinates (hint 1),
-  - `d`: features, no relative coordinates.
-- Add the job `train-smoke`.
 - Change `PhongWindow`: the methods `draw_scene` and `read_image` hold the drawing and the reading of one scene. The data generation does not change.
 - Add `renderer/src/neural_window.py` (answer to "the network must be connected to the renderer"):
   - The window samples a scene. It shows the Phong image (left) and the image of the generator (right) for the same scene.
@@ -90,23 +83,14 @@
   - With `--scene_seconds`, a visible window keeps each scene for some seconds.
 - Local test with random weights (5 frames, headless): the window image is equal to the saved pair. The scene 0 is equal to the scene 0 of `data-v1`.
 - Add the job `render-v1` (not started). It runs the renderer with the generator for the 3000 scenes (seed 0), and scores the 600 test scenes.
-- Changes after `train-smoke`:
-  - The generator has a linear output in the training. In the evaluation, it clamps the output to [0, 1].
-  - Mixed precision (AMP) for the speed.
-  - The EMA decay is small at the start, so the EMA generator is not the random start generator.
-- Add the job `train-smoke2`.
-- Results of `train-smoke2` (images of `smoke2-a`):
-  - The position, the size and the color of the spheres are correct. The highlights are blurred.
-  - Bad cases: the light is behind the sphere. The reference has only a thin bright edge, the rest is ambient (7/255). The network gives a dark sphere without the edge.
-  - A dark sphere has no Canny edges (the step of 7/255 is below the threshold). Then the Hausdorff distance is 181 px, and these images dominate the mean.
-- Changes after `train-smoke2`:
-  - The GAN loss uses only the 16x16 patches that touch the sphere region. Background patches are equal in real and fake images.
-  - A cosine decay of the learning rate to 0.
-- Add the job `train-smoke3`.
-- Results of `train-smoke3`:
-  - The GAN gives sharper shapes and highlights than only L1. LPIPS and Hausdorff are better, FLIP and SSIM are worse. The metrics do not agree.
-  - Bad cases: the light is behind the sphere. The reference has a bright edge around the sphere. The GAN draws a bright spot instead.
-- Decision: the main model uses the GAN weight 5 (best LPIPS and Hausdorff). The weight 1 is the variant `gan-v1e`.
+- Plan of the experiments (one change for each variant):
+  - `gan-v1a`: GAN + L1, features, relative coordinates (main model),
+  - `gan-v1b`: only L1, no GAN,
+  - `gan-v1c`: raw parameters, no relative coordinates (hint 1),
+  - `gan-v1d`: features, no relative coordinates,
+  - `gan-v1e`: the GAN weight 1 instead of 5,
+  - `gan-v1f`: `gan-v1a` with a different seed.
+- Speed on a T4: a GAN step takes 0.1 s, an L1 step 0.07 s.
 - Add the jobs `train-v1` and `train-v1ef`.
 
 ### 2026-11-18
