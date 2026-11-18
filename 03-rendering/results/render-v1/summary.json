@@ -1,0 +1,14 @@
+{
+  "codename": "gan-v2a",
+  "FLIP": 0.00074,
+  "LPIPS": 0.00099,
+  "SSIM": 0.9995,
+  "Hausdorff": 1.50079,
+  "FLIP (crop)": 0.00295,
+  "LPIPS (crop)": 0.00191,
+  "SSIM (crop)": 0.99782,
+  "Hausdorff (crop)": 1.50079,
+  "phong_equal_to_data_set": 3000,
+  "max_difference_to_training_predictions": 1.0,
+  "ms_per_image_cpu": 53.9
+}
