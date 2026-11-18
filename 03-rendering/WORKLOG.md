@@ -9,6 +9,7 @@
 | 2026-11-17 | train-v1 | [sigk-p3-train-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v1) | Full training, 40000 steps: `gan-v1a` (GAN weight 5, main), `gan-v1b` (only L1), `gan-v1c` (raw parameters), `gan-v1d` (no relative coordinates). Result (600 test images, FLIP / LPIPS / SSIM / Hausdorff): `a` 0.00156 / 0.00117 / 0.99927 / 1.60; `b` 0.00131 / 0.00197 / 0.99940 / 2.09; `c` 0.00255 / 0.00393 / 0.99772 / 2.38; `d` 0.00186 / 0.00143 / 0.99905 / 1.65. | complete |
 | 2026-11-17 | train-v1ef | [sigk-p3-train-v1ef](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v1ef) | Full training, 40000 steps: `gan-v1e` (GAN weight 1), `gan-v1f` (`gan-v1a` with seed 1). Result (600 test images): `gan-v1e` FLIP 0.00136, LPIPS 0.00134, SSIM 0.99934, Hausdorff 1.58; `gan-v1f` FLIP 0.00131, LPIPS 0.00103, SSIM 0.99936, Hausdorff 1.50. The best checkpoint is the last step. 72 min for each run. | complete |
 | 2026-11-18 | train-v2ab | [sigk-p3-train-v2ab](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v2ab) | `gan-v2a`: the main model with 100000 steps. `gan-v2b`: the main model without the mirror augmentation (40000 steps). Result: `gan-v2a` 0.00115 / 0.00099 / 0.99949 / 1.50 (best checkpoint at step 80000, 168 min); `gan-v2b` 0.00204 / 0.00234 / 0.99881 / 2.32. | complete |
+| 2026-11-18 | train-v3ab | [sigk-p3-train-v3ab](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v3ab) | 100000 steps, as `gan-v2a`: `gan-v3a` (only L1), `gan-v3b` (`gan-v2a` with seed 1). | running |
 
 ## Log
 
@@ -100,6 +101,8 @@
 - The images of `gan-v1f`:
   - The best images have no visible difference.
   - The worst images: the light is behind the sphere. The network draws the bright edge, but the edge is smooth and has a weak color. The edge of the reference has steps from the mesh.
+- Results of `train-v1` and `train-v2ab`: `gan-v2a` (100000 steps) is the best in all four metrics. Only L1 (`gan-v1b`) has the best FLIP and SSIM of the 40000-step runs.
+- Add the job `train-v3ab`. Only L1 had 40000 steps and `gan-v2a` 100000 steps. The comparison of the GAN with only L1 needs the same number of steps. The second seed shows the random difference at 100000 steps.
 
 ## State and next steps (2026-11-18)
 
