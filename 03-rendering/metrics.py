@@ -86,6 +86,23 @@ def change_test(targets):
                          for name, change in CHANGES.items()}).T
 
 
+def plot_change_examples(target, center, size=48):
+    """Each change of CHANGES on one reference image, as a zoom around the sphere with the four metrics."""
+    from training import crop
+    fig, axes = plt.subplots(1, len(CHANGES), figsize=(2.2 * len(CHANGES), 3.0))
+    for ax, (name, change) in zip(axes, CHANGES.items()):
+        changed = change(target)
+        s = score(changed, target)
+        ax.imshow(np.clip(crop(changed, center, size), 0, 1), interpolation="nearest")
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_title(name, fontsize=9)
+        ax.set_xlabel(f"FLIP {s['FLIP']:.4f}\nLPIPS {s['LPIPS']:.4f}\nSSIM {s['SSIM']:.4f}\nHausdorff {s['Hausdorff']:.1f}",
+                      fontsize=8)
+    fig.tight_layout()
+    return fig
+
+
 def load_summaries(results_dir, codenames):
     """One row for each experiment with the mean test metrics and the settings."""
     rows = [json.loads((Path(results_dir) / codename / "summary.json").read_text()) for codename in codenames]

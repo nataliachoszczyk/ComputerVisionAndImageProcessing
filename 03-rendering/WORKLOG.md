@@ -129,6 +129,9 @@
 
 - Add the job `figures-v2`. The zoom size of `plot_examples` changes with the sphere size.
 
+- Write `SUMMARY.md` (Polish) on the request of the user.
+- Add `plot_change_examples` to `metrics.py`, and the figures of the report in `results/summary/`.
+
 ## State and next steps (2026-11-18)
 
 ### State
@@ -140,10 +143,9 @@
 ### Decisions
 
 - The model is a conditional GAN with the GAN weight 5, the features and the relative coordinates, 100000 steps.
-- The user writes `SUMMARY.md`.
+- `SUMMARY.md` has the report.
 - The data set is the output of the kernel `sigk-p3-data-v1`.
 
 ### Next steps
 
-1. The user writes `SUMMARY.md`.
-2. At the end, merge `pro3` into `main` and change the README files (after the approval of the user).
+1. At the end, merge `pro3` into `main` and change the README files (after the approval of the user).
