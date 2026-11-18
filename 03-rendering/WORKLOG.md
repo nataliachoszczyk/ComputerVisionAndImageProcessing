@@ -11,6 +11,7 @@
 | 2026-11-18 | train-v2ab | [sigk-p3-train-v2ab](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v2ab) | `gan-v2a`: the main model with 100000 steps. `gan-v2b`: the main model without the mirror augmentation (40000 steps). Result: `gan-v2a` 0.00115 / 0.00099 / 0.99949 / 1.50 (best checkpoint at step 80000, 168 min); `gan-v2b` 0.00204 / 0.00234 / 0.99881 / 2.32. | complete |
 | 2026-11-18 | train-v3ab | [sigk-p3-train-v3ab](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-train-v3ab) | 100000 steps, as `gan-v2a`: `gan-v3a` (only L1), `gan-v3b` (`gan-v2a` with seed 1). Result: `gan-v3a` 0.00118 / 0.00156 / 0.99944 / 1.80 (best step 100000, 116 min); `gan-v3b` 0.00142 / 0.00109 / 0.99930 / 1.59 (best step 65000, 173 min). | complete |
 | 2026-11-18 | render-v1 | [sigk-p3-render-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-render-v1) | The renderer with the generator of `gan-v2a` for the 3000 scenes (seed 0, CPU, EGL). Check that the Phong images are equal to `data-v1`. Score the 600 test scenes on the full image and on a 64x64 crop. Change test of the metrics. Result: all 3000 Phong images are equal to `data-v1`. The network image differs from the training predictions by 1/255 or less. Full image: FLIP 0.00074, LPIPS 0.00099, SSIM 0.99950, Hausdorff 1.50. Crop 64x64: FLIP 0.00295, LPIPS 0.00191, SSIM 0.99782, Hausdorff 1.50. The network takes 54 ms for one image on the CPU. | complete |
+| 2026-11-18 | figures-v1 | [sigk-p3-figures-v1](https://www.kaggle.com/code/nataliachoszczyk/sigk-p3-figures-v1) | Draw the test examples of `gan-v2a` again, with titles of the columns and the zoom areas (CPU). Result: `results/figures-v1/examples-gan-v2a.png`. | complete |
 
 ## Log
 
@@ -118,6 +119,12 @@
 
 - Add `experiments.ipynb`. It shows the data, the row `neural_renderer`, the table of all variants, the learning curves, the test images, the network in the renderer and the analysis of the metrics.
 - Change `plot_histories` in `metrics.py`: a log scale, and 1 - SSIM instead of SSIM. On a linear scale, the early peaks hide the end of the training.
+
+- Make the figures of the notebook easier to read:
+  - Fix `plot_examples`: the column titles were missing, because `row is axes[0]` is always false for numpy rows.
+  - Add `plot_scenes` and `plot_render_pairs` to `training.py`. All figures show a zoom of the sphere and the zoom area.
+  - Add the job `figures-v1` for the new example figure, because the predictions are only on Kaggle.
+- Make the text of `experiments.ipynb` shorter.
 
 ## State and next steps (2026-11-18)
 
