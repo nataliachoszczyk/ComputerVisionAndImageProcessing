@@ -1,0 +1,16 @@
+{
+  "codename": "gan-v2a",
+  "FLIP": 0.00115,
+  "LPIPS": 0.00099,
+  "SSIM": 0.99949,
+  "Hausdorff": 1.50079,
+  "input_kind": "features",
+  "relative": true,
+  "adversarial": 5.0,
+  "mirror": true,
+  "steps": 100000,
+  "best_step": 80000,
+  "generator_params": 3402435,
+  "train_minutes": 167.8,
+  "ms_per_image": 3.6
+}

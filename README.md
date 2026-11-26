@@ -6,7 +6,7 @@ University projects for the SIGK (Sztuczna inteligencja w grafice komputerowej) 
 |---|--------|-------|
 | 1 | `01-image-modification` | Image modification (super-resolution, denoising) |
 | 2 | `02-low-light-enhancement` | Low light image enhancement |
-| 3 | TBD | TBD |
+| 3 | `03-rendering` | Neural rendering of the Phong model (conditional GAN) |
 | 4 | TBD | TBD |
 | 5 | TBD | TBD |
 

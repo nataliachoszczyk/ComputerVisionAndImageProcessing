@@ -1,0 +1,16 @@
+{
+  "codename": "gan-v1c",
+  "FLIP": 0.00255,
+  "LPIPS": 0.00393,
+  "SSIM": 0.99772,
+  "Hausdorff": 2.37898,
+  "input_kind": "raw",
+  "relative": false,
+  "adversarial": 5.0,
+  "mirror": true,
+  "steps": 40000,
+  "best_step": 40000,
+  "generator_params": 3375011,
+  "train_minutes": 68.4,
+  "ms_per_image": 4.04
+}

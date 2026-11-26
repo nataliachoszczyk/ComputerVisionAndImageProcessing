@@ -10,9 +10,9 @@ The local machine has the code and the records. Kaggle does the heavy computatio
 |---|---|
 | `<user>` | `nataliachoszczyk` |
 | `<owner>/<repository>` | `nataliachoszczyk/ComputerVisionAndImageProcessing` (public) |
-| `<project branch>` | `pro2` for project 2 |
-| `<project folder>` | `02-low-light-enhancement` for project 2 |
-| `<project>` in kernel names | `sigk-p2` for project 2 |
+| `<project branch>` | `pro2` for project 2, `pro3` for project 3 |
+| `<project folder>` | `02-low-light-enhancement` for project 2, `03-rendering` for project 3 |
+| `<project>` in kernel names | `sigk-p2` for project 2, `sigk-p3` for project 3 |
 
 ## 1. Local setup
 

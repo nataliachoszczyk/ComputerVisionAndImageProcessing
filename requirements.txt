@@ -14,6 +14,15 @@ requests
 tqdm
 pyyaml
 ipykernel
+scipy
+# Project 3: the renderer of the task and the FLIP metric.
+moderngl==5.12.0
+moderngl-window==3.1.1
+pyglet==2.1.5
+pyrr==0.10.3
+PyWavefront==1.3.3
+pillow
+flip-evaluator
 
 kaggle==2.2.5
 # kaggle 2.2.5 imports six, but does not declare it.
