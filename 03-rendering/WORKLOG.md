@@ -149,3 +149,8 @@
 ### Next steps
 
 1. At the end, merge `pro3` into `main` and change the README files (after the approval of the user).
+
+## 2026-11-27
+
+- Add project 3 to the table in the root `README.md`.
+- Merge `pro3` into `main`.
